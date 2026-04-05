@@ -1,6 +1,6 @@
 project:
   type: website
-  output-dir: output
+  output-dir: docs
 
 execute:
   freeze: auto
@@ -11,14 +11,6 @@ website:
     left:
       - href: analysis/report.qmd
         text: Report
-      - href: analysis/01_overview.qmd
-        text: Overview
-      - href: analysis/02_sentiment.qmd
-        text: Sentiment
-      - href: analysis/03_words.qmd
-        text: Words
-      - href: analysis/04_timeline.qmd
-        text: Timeline
 
 format:
   html:

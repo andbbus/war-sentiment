@@ -4,7 +4,7 @@ Cross-country sentiment analysis of media coverage of the **Iran–Israel confli
 (January–April 2026). Compares framing, word usage, and sentiment across newspapers
 in 11 countries using multilingual BERT.
 
-**[View the report →](https://andbbus.github.io/war-sentiment/analysis/report.html)**
+**[View the report →](https://andbbus.github.io/war-sentiment/analysis/report.html)** *(GitHub Pages — enable under Settings → Pages → Branch: main / docs)*
 
 ## Results at a glance
 
