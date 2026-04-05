@@ -1,0 +1,149 @@
+[
+  {
+    "objectID": "analysis/report.html",
+    "href": "analysis/report.html",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "",
+    "text": "This analysis examines how newspapers across 11 countries and regions frame and report on the Iran–Israel conflict during the period January 4 – April 4, 2026.\nWe collected articles from 55 major outlets using the GDELT Global Knowledge Graph, extracted full text via web scraping, and ran multilingual sentiment analysis using XLM-RoBERTa — a transformer model trained on 100+ languages. This allows us to analyze Italian, Spanish, French, German, and Portuguese articles in their native language without losing linguistic nuance through translation.\n\n\n\n\n\n\n\n\n\n\n\nRegion\nCountry\nLanguage\nOutlets\n\n\n\n\nNorth America\nUSA\nEnglish\nNYT, Washington Post, Fox News, CNN, WSJ\n\n\nNorth America\nCanada\nEnglish\nGlobe and Mail, Toronto Star, National Post, CBC, CTV\n\n\nEurope\nUK\nEnglish\nThe Guardian, BBC, The Times, Daily Mail, The Independent\n\n\nEurope\nItaly\nItalian\nCorriere della Sera, La Repubblica, La Stampa, Il Sole 24 Ore, ANSA\n\n\nEurope\nSpain\nSpanish\nEl País, El Mundo, ABC, La Vanguardia, El Confidencial\n\n\nEurope\nFrance\nFrench\nLe Monde, Le Figaro, Libération, Le Parisien, BFM TV\n\n\nEurope\nGermany\nGerman\nDer Spiegel, Die Zeit, FAZ, Süddeutsche Zeitung, Bild\n\n\nSouth America\nBrazil\nPortuguese\nFolha, O Globo, Estadão, UOL, Veja\n\n\nSouth America\nArgentina\nSpanish\nLa Nación, Clarín, Infobae, Página 12, Perfil\n\n\nMiddle East\nAl-Jazeera\nEnglish\naljazeera.com\n\n\nMiddle East\nIsrael\nEnglish\nJerusalem Post, Haaretz, Times of Israel, Ynet, Israel National News\n\n\n\n\n\n\n\nData collection: GDELT 2.0 GKG queried via Google BigQuery, filtered by source domain and Iran/Israel/War themes.\nArticle scraping: Full text extracted with trafilatura; paywalled articles use available snippets.\nSentiment model: cardiffnlp/xlm-roberta-base-sentiment-multilingual — 3-class classification (positive / neutral / negative). Long articles chunked into 510-token windows with 50-token overlap; probabilities aggregated by token-weighted average.\nValidation: BERT sentiment cross-validated against GDELT’s built-in tone scores."
+  },
+  {
+    "objectID": "analysis/report.html#introduction",
+    "href": "analysis/report.html#introduction",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "",
+    "text": "This analysis examines how newspapers across 11 countries and regions frame and report on the Iran–Israel conflict during the period January 4 – April 4, 2026.\nWe collected articles from 55 major outlets using the GDELT Global Knowledge Graph, extracted full text via web scraping, and ran multilingual sentiment analysis using XLM-RoBERTa — a transformer model trained on 100+ languages. This allows us to analyze Italian, Spanish, French, German, and Portuguese articles in their native language without losing linguistic nuance through translation.\n\n\n\n\n\n\n\n\n\n\n\nRegion\nCountry\nLanguage\nOutlets\n\n\n\n\nNorth America\nUSA\nEnglish\nNYT, Washington Post, Fox News, CNN, WSJ\n\n\nNorth America\nCanada\nEnglish\nGlobe and Mail, Toronto Star, National Post, CBC, CTV\n\n\nEurope\nUK\nEnglish\nThe Guardian, BBC, The Times, Daily Mail, The Independent\n\n\nEurope\nItaly\nItalian\nCorriere della Sera, La Repubblica, La Stampa, Il Sole 24 Ore, ANSA\n\n\nEurope\nSpain\nSpanish\nEl País, El Mundo, ABC, La Vanguardia, El Confidencial\n\n\nEurope\nFrance\nFrench\nLe Monde, Le Figaro, Libération, Le Parisien, BFM TV\n\n\nEurope\nGermany\nGerman\nDer Spiegel, Die Zeit, FAZ, Süddeutsche Zeitung, Bild\n\n\nSouth America\nBrazil\nPortuguese\nFolha, O Globo, Estadão, UOL, Veja\n\n\nSouth America\nArgentina\nSpanish\nLa Nación, Clarín, Infobae, Página 12, Perfil\n\n\nMiddle East\nAl-Jazeera\nEnglish\naljazeera.com\n\n\nMiddle East\nIsrael\nEnglish\nJerusalem Post, Haaretz, Times of Israel, Ynet, Israel National News\n\n\n\n\n\n\n\nData collection: GDELT 2.0 GKG queried via Google BigQuery, filtered by source domain and Iran/Israel/War themes.\nArticle scraping: Full text extracted with trafilatura; paywalled articles use available snippets.\nSentiment model: cardiffnlp/xlm-roberta-base-sentiment-multilingual — 3-class classification (positive / neutral / negative). Long articles chunked into 510-token windows with 50-token overlap; probabilities aggregated by token-weighted average.\nValidation: BERT sentiment cross-validated against GDELT’s built-in tone scores."
+  },
+  {
+    "objectID": "analysis/report.html#dataset-summary",
+    "href": "analysis/report.html#dataset-summary",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Dataset Summary",
+    "text": "Dataset Summary\n\n\nCode\ndf |&gt;\n  group_by(country, outlet_name) |&gt;\n  summarise(\n    articles    = n(),\n    avg_words   = round(mean(word_count, na.rm = TRUE)),\n    date_min    = min(published_date, na.rm = TRUE),\n    date_max    = max(published_date, na.rm = TRUE),\n    .groups = \"drop\"\n  ) |&gt;\n  arrange(country, desc(articles)) |&gt;\n  kbl(\n    col.names = c(\"Country\", \"Outlet\", \"Articles\", \"Avg Words\", \"First\", \"Last\"),\n    caption   = \"Article counts and coverage per outlet\"\n  ) |&gt;\n  kable_styling(bootstrap_options = c(\"striped\", \"hover\", \"condensed\")) |&gt;\n  collapse_rows(columns = 1, valign = \"top\")\n\n\n\nArticle counts and coverage per outlet\n\n\nCountry\nOutlet\nArticles\nAvg Words\nFirst\nLast\n\n\n\n\nAlJazeera\nAl-Jazeera English\n329\n1028\n2026-01-04\n2026-04-04\n\n\nArgentina\nInfobae\n14\n1152\n2026-03-03\n2026-03-30\n\n\nClarín\n11\n1106\n2026-02-19\n2026-03-27\n\n\nLa Nación\n5\n1956\n2026-03-10\n2026-03-30\n\n\nBrazil\nEstadão\n3\n686\n2026-03-01\n2026-04-01\n\n\nVeja\n1\n403\n2026-03-16\n2026-03-16\n\n\nCanada\nGlobe and Mail\n128\n1381\n2026-01-06\n2026-04-04\n\n\nFrance\nBFM TV\n156\n1509\n2026-01-07\n2026-04-04\n\n\nLe Parisien\n104\n1097\n2026-01-11\n2026-04-02\n\n\nLe Figaro\n2\n786\n2026-03-04\n2026-03-22\n\n\nGermany\nDie Zeit\n55\n613\n2026-02-07\n2026-04-03\n\n\nSüddeutsche Zeitung\n31\n1447\n2026-01-18\n2026-04-04\n\n\nBild\n21\n485\n2026-02-26\n2026-03-30\n\n\nDer Spiegel\n17\n639\n2026-01-13\n2026-04-02\n\n\nFAZ\n2\n832\n2026-01-16\n2026-03-22\n\n\nIsrael\nJerusalem Post\n400\n921\n2026-01-05\n2026-04-04\n\n\nYnet News\n299\n822\n2026-01-04\n2026-04-04\n\n\nIsrael National News\n103\n763\n2026-01-04\n2026-03-31\n\n\nHaaretz\n15\n499\n2026-01-09\n2026-04-03\n\n\nItaly\nCorriere della Sera\n83\n1622\n2026-01-11\n2026-04-03\n\n\nANSA\n65\n886\n2026-01-19\n2026-04-03\n\n\nLa Stampa\n34\n2852\n2026-01-11\n2026-04-04\n\n\nLa Repubblica\n28\n4851\n2026-01-19\n2026-04-03\n\n\nIl Sole 24 Ore\n22\n852\n2026-01-05\n2026-04-02\n\n\nSpain\nEl Confidencial\n9\n1652\n2026-01-13\n2026-03-31\n\n\nEl País\n6\n1084\n2026-03-01\n2026-04-01\n\n\nEl Mundo\n4\n1630\n2026-02-26\n2026-03-08\n\n\nABC\n3\n907\n2026-03-02\n2026-03-08\n\n\nLa Vanguardia\n2\n751\n2026-03-30\n2026-04-04\n\n\nUK\nDaily Mail\n370\n1271\n2026-01-05\n2026-04-04\n\n\nThe Independent\n318\n914\n2026-01-06\n2026-04-04\n\n\nThe Guardian\n252\n1141\n2026-01-05\n2026-04-04\n\n\nBBC News\n33\n990\n2026-01-12\n2026-04-01\n\n\nUSA\nCNN\n216\n1322\n2026-01-05\n2026-04-04\n\n\nFox News\n111\n775\n2026-01-05\n2026-04-04\n\n\nNew York Times\n6\n1794\n2026-03-08\n2026-04-04"
+  },
+  {
+    "objectID": "analysis/report.html#articles-per-country",
+    "href": "analysis/report.html#articles-per-country",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Articles per Country",
+    "text": "Articles per Country\n\n\nCode\ndf |&gt;\n  count(country, scrape_status) |&gt;\n  ggplot(aes(x = reorder(country, n), y = n, fill = scrape_status)) +\n  geom_col() +\n  coord_flip() +\n  scale_fill_brewer(palette = \"Set2\", name = \"Scrape status\") +\n  scale_y_continuous(labels = comma) +\n  labs(\n    title = \"Articles per country\",\n    x = NULL, y = \"Article count\"\n  ) +\n  theme_minimal(base_size = 13)"
+  },
+  {
+    "objectID": "analysis/report.html#weekly-coverage",
+    "href": "analysis/report.html#weekly-coverage",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Weekly Coverage",
+    "text": "Weekly Coverage\n\n\nCode\ndf |&gt;\n  count(week) |&gt;\n  ggplot(aes(x = week, y = n)) +\n  geom_col(fill = \"#4472C4\") +\n  scale_x_date(date_breaks = \"2 weeks\", date_labels = \"%b %d\") +\n  scale_y_continuous(labels = comma) +\n  labs(\n    title = \"Articles per week (all countries)\",\n    x = NULL, y = \"Count\"\n  ) +\n  theme_minimal(base_size = 13)"
+  },
+  {
+    "objectID": "analysis/report.html#language-validation",
+    "href": "analysis/report.html#language-validation",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Language Validation",
+    "text": "Language Validation\n\n\nCode\ndf |&gt;\n  group_by(country, language, detected_language) |&gt;\n  summarise(articles = n(), .groups = \"drop\") |&gt;\n  mutate(match = ifelse(substr(language, 1, 2) == substr(detected_language, 1, 2), \"✓\", \"✗\")) |&gt;\n  arrange(country) |&gt;\n  kbl(\n    col.names = c(\"Country\", \"Expected lang\", \"Detected lang\", \"Articles\", \"Match\"),\n    caption   = \"Language validation summary\"\n  ) |&gt;\n  kable_styling(bootstrap_options = c(\"striped\", \"condensed\"))\n\n\n\nLanguage validation summary\n\n\nCountry\nExpected lang\nDetected lang\nArticles\nMatch\n\n\n\n\nAlJazeera\nen\nen\n329\n✓\n\n\nArgentina\nes\nes\n30\n✓\n\n\nBrazil\npt\npt\n4\n✓\n\n\nCanada\nen\nen\n128\n✓\n\n\nFrance\nfr\nfr\n262\n✓\n\n\nGermany\nde\nde\n126\n✓\n\n\nIsrael\nen\nen\n817\n✓\n\n\nItaly\nit\nit\n232\n✓\n\n\nSpain\nes\nes\n24\n✓\n\n\nUK\nen\nen\n973\n✓\n\n\nUSA\nen\nen\n333\n✓"
+  },
+  {
+    "objectID": "analysis/report.html#sentiment-heatmap",
+    "href": "analysis/report.html#sentiment-heatmap",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Sentiment Heatmap",
+    "text": "Sentiment Heatmap\nCountry × sentiment dimension (avg BERT probabilities).\n\n\nCode\ncountry_avg |&gt;\n  pivot_longer(c(positive, neutral, negative), names_to = \"sentiment\", values_to = \"prob\") |&gt;\n  mutate(sentiment = factor(sentiment, levels = c(\"positive\", \"neutral\", \"negative\"))) |&gt;\n  ggplot(aes(x = sentiment, y = reorder(country, net), fill = prob)) +\n  geom_tile(color = \"white\", linewidth = 0.5) +\n  geom_text(aes(label = round(prob, 2)), size = 3.5, color = \"white\") +\n  scale_fill_viridis(option = \"plasma\", name = \"Avg probability\") +\n  labs(\n    title = \"Average BERT sentiment probabilities by country\",\n    x = \"Sentiment class\", y = NULL\n  ) +\n  theme_minimal(base_size = 13) +\n  theme(legend.position = \"bottom\", legend.key.width = unit(2, \"cm\"))"
+  },
+  {
+    "objectID": "analysis/report.html#net-sentiment-by-outlet",
+    "href": "analysis/report.html#net-sentiment-by-outlet",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Net Sentiment by Outlet",
+    "text": "Net Sentiment by Outlet\n\n\nCode\ncorpus_mean &lt;- mean(df$bert_net, na.rm = TRUE)\n\noutlet_avg |&gt;\n  mutate(\n    direction = ifelse(net &gt; corpus_mean, \"above average\", \"below average\"),\n    outlet_name = reorder(outlet_name, net)\n  ) |&gt;\n  ggplot(aes(x = net, y = outlet_name, fill = direction)) +\n  geom_col() +\n  geom_vline(xintercept = corpus_mean, linetype = \"dashed\", color = \"grey40\") +\n  facet_wrap(~country, scales = \"free_y\", ncol = 3) +\n  scale_fill_manual(\n    values = c(\"above average\" = \"#2196F3\", \"below average\" = \"#F44336\"),\n    guide = \"none\"\n  ) +\n  labs(\n    title = \"Net sentiment (positive − negative) by outlet\",\n    subtitle = \"Dashed line = corpus mean\",\n    x = \"Net sentiment score\", y = NULL\n  ) +\n  theme_minimal(base_size = 11)"
+  },
+  {
+    "objectID": "analysis/report.html#sentiment-distribution-ridge-plot",
+    "href": "analysis/report.html#sentiment-distribution-ridge-plot",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Sentiment Distribution (Ridge Plot)",
+    "text": "Sentiment Distribution (Ridge Plot)\n\n\nCode\ndf |&gt;\n  mutate(country = reorder(country, bert_net, FUN = mean, na.rm = TRUE)) |&gt;\n  ggplot(aes(x = bert_net, y = country, fill = after_stat(x))) +\n  geom_density_ridges_gradient(scale = 2, rel_min_height = 0.01) +\n  scale_fill_viridis(option = \"cividis\", name = \"Net sentiment\") +\n  geom_vline(xintercept = 0, linetype = \"dashed\", color = \"white\", linewidth = 0.8) +\n  labs(\n    title = \"Distribution of net sentiment (positive − negative) by country\",\n    x = \"Net sentiment score\", y = NULL\n  ) +\n  theme_minimal(base_size = 13)\n\n\nPicking joint bandwidth of 0.0622"
+  },
+  {
+    "objectID": "analysis/report.html#diverging-bar-most-vs-least-positive-outlets",
+    "href": "analysis/report.html#diverging-bar-most-vs-least-positive-outlets",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Diverging Bar: Most vs Least Positive Outlets",
+    "text": "Diverging Bar: Most vs Least Positive Outlets\n\n\nCode\noutlet_avg |&gt;\n  mutate(\n    label = paste0(outlet_name, \" (\", country, \")\"),\n    label = reorder(label, net)\n  ) |&gt;\n  ggplot(aes(x = net, y = label, fill = net &gt; 0)) +\n  geom_col() +\n  geom_vline(xintercept = 0, color = \"grey30\") +\n  scale_fill_manual(\n    values = c(\"TRUE\" = \"#1976D2\", \"FALSE\" = \"#D32F2F\"),\n    labels = c(\"Net positive\", \"Net negative\"),\n    name   = NULL\n  ) +\n  labs(\n    title = \"Outlets ranked by net sentiment\",\n    x = \"Net sentiment (positive − negative)\", y = NULL\n  ) +\n  theme_minimal(base_size = 11) +\n  theme(legend.position = \"top\")"
+  },
+  {
+    "objectID": "analysis/report.html#validation-gdelt-tone-vs-bert-sentiment",
+    "href": "analysis/report.html#validation-gdelt-tone-vs-bert-sentiment",
+    "title": "04 — Temporal Trends",
+    "section": "Validation: GDELT Tone vs BERT Sentiment",
+    "text": "Validation: GDELT Tone vs BERT Sentiment\n\n\nCode\ndf |&gt;\n  group_by(country) |&gt;\n  summarise(\n    gdelt_tone = mean(gdelt_tone, na.rm = TRUE),\n    bert_net   = mean(bert_net,   na.rm = TRUE),\n    n          = n()\n  ) |&gt;\n  ggplot(aes(x = gdelt_tone, y = bert_net, label = country, size = n)) +\n  geom_point(alpha = 0.7, color = \"#1976D2\") +\n  geom_smooth(method = \"lm\", se = TRUE, color = \"grey40\", linewidth = 0.8) +\n  ggrepel::geom_text_repel(size = 4, show.legend = FALSE) +\n  scale_size_continuous(name = \"Articles\", labels = comma) +\n  labs(\n    title = \"GDELT tone vs BERT net sentiment (country averages)\",\n    subtitle = \"High correlation validates BERT model quality\",\n    x = \"GDELT composite tone\", y = \"BERT net sentiment (pos − neg)\"\n  ) +\n  theme_minimal(base_size = 13)\n\n\nWarning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.\nℹ Please use `linewidth` instead.\n\n\n`geom_smooth()` using formula = 'y ~ x'\n\n\nWarning: Removed 11 rows containing non-finite outside the scale range\n(`stat_smooth()`).\n\n\nWarning: Removed 11 rows containing missing values or values outside the scale range\n(`geom_point()`).\n\n\nWarning: Removed 11 rows containing missing values or values outside the scale range\n(`geom_text_repel()`)."
+  },
+  {
+    "objectID": "analysis/report.html#word-clouds-per-country",
+    "href": "analysis/report.html#word-clouds-per-country",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Word Clouds per Country",
+    "text": "Word Clouds per Country\n\n\nCode\ntop_words &lt;- tokens_clean |&gt;\n  count(country, word, sort = TRUE) |&gt;\n  group_by(country) |&gt;\n  slice_max(n, n = 80) |&gt;\n  ungroup()\n\ntop_words |&gt;\n  ggplot(aes(label = word, size = n, color = n)) +\n  geom_text_wordcloud(rm_outside = TRUE, seed = 42) +\n  scale_size_area(max_size = 10) +\n  scale_color_viridis_c(option = \"plasma\") +\n  facet_wrap(~country, ncol = 3) +\n  theme_minimal(base_size = 12) +\n  theme(strip.text = element_text(face = \"bold\", size = 13)) +\n  labs(title = \"Most frequent words per country (native language, stopwords removed)\")"
+  },
+  {
+    "objectID": "analysis/report.html#tf-idf-most-distinctive-words-per-country",
+    "href": "analysis/report.html#tf-idf-most-distinctive-words-per-country",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "TF-IDF: Most Distinctive Words per Country",
+    "text": "TF-IDF: Most Distinctive Words per Country\nTF-IDF measures which words are distinctive to each country relative to the full corpus.\n\n\nCode\ntfidf &lt;- tokens_clean |&gt;\n  count(country, word, sort = TRUE) |&gt;\n  bind_tf_idf(word, country, n) |&gt;\n  group_by(country) |&gt;\n  slice_max(tf_idf, n = 10) |&gt;\n  ungroup()\n\ntfidf |&gt;\n  mutate(word = reorder_within(word, tf_idf, country)) |&gt;\n  ggplot(aes(x = tf_idf, y = word, fill = country)) +\n  geom_col(show.legend = FALSE) +\n  facet_wrap(~country, scales = \"free_y\", ncol = 3) +\n  scale_y_reordered() +\n  scale_fill_viridis_d(option = \"turbo\") +\n  labs(\n    title = \"Most distinctive words per country (TF-IDF)\",\n    subtitle = \"Words with high TF-IDF are used much more by this country than others\",\n    x = \"TF-IDF score\", y = NULL\n  ) +\n  theme_minimal(base_size = 11) +\n  theme(strip.text = element_text(face = \"bold\"))"
+  },
+  {
+    "objectID": "analysis/report.html#bigram-analysis",
+    "href": "analysis/report.html#bigram-analysis",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Bigram Analysis",
+    "text": "Bigram Analysis\n\n\nCode\nbigrams &lt;- df |&gt;\n  select(article_id, country, language, full_text) |&gt;\n  unnest_tokens(bigram, full_text, token = \"ngrams\", n = 2) |&gt;\n  separate(bigram, into = c(\"word1\", \"word2\"), sep = \" \") |&gt;\n  # Remove bigrams containing stopwords\n  anti_join(all_stopwords, by = c(\"word1\" = \"word\", \"language\")) |&gt;\n  anti_join(all_stopwords, by = c(\"word2\" = \"word\", \"language\")) |&gt;\n  filter(nchar(word1) &gt; 2, nchar(word2) &gt; 2) |&gt;\n  filter(!str_detect(word1, \"^\\\\d+$\"), !str_detect(word2, \"^\\\\d+$\")) |&gt;\n  unite(bigram, word1, word2, sep = \" \") |&gt;\n  count(country, bigram, sort = TRUE) |&gt;\n  group_by(country) |&gt;\n  slice_max(n, n = 10) |&gt;\n  ungroup()\n\nbigrams |&gt;\n  mutate(bigram = reorder_within(bigram, n, country)) |&gt;\n  ggplot(aes(x = n, y = bigram, fill = country)) +\n  geom_col(show.legend = FALSE) +\n  facet_wrap(~country, scales = \"free_y\", ncol = 3) +\n  scale_y_reordered() +\n  scale_fill_viridis_d(option = \"turbo\") +\n  labs(\n    title = \"Most common two-word phrases per country\",\n    x = \"Count\", y = NULL\n  ) +\n  theme_minimal(base_size = 11) +\n  theme(strip.text = element_text(face = \"bold\"))"
+  },
+  {
+    "objectID": "analysis/report.html#weekly-sentiment-trends-by-country",
+    "href": "analysis/report.html#weekly-sentiment-trends-by-country",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Weekly Sentiment Trends by Country",
+    "text": "Weekly Sentiment Trends by Country\n\n\nCode\nweekly &lt;- df |&gt;\n  group_by(country, week) |&gt;\n  summarise(\n    net = mean(bert_net, na.rm = TRUE),\n    n   = n(),\n    .groups = \"drop\"\n  )\n\np &lt;- weekly |&gt;\n  ggplot(aes(x = week, y = net, color = country, group = country)) +\n  geom_line(linewidth = 0.8, alpha = 0.9) +\n  geom_hline(yintercept = 0, linetype = \"dashed\", color = \"grey50\") +\n  scale_color_viridis_d(option = \"turbo\", name = \"Country\") +\n  scale_x_date(date_breaks = \"2 weeks\", date_labels = \"%b %d\") +\n  labs(\n    title = \"Weekly average net sentiment by country\",\n    subtitle = \"Net sentiment = BERT positive − negative probability\",\n    x = NULL, y = \"Net sentiment\"\n  ) +\n  theme_minimal(base_size = 13) +\n  theme(legend.position = \"right\")\n\n# Add event annotations if any exist\nif (nrow(events) &gt; 0) {\n  p &lt;- p +\n    geom_vline(\n      data = events,\n      aes(xintercept = date),\n      linetype = \"dotted\", color = \"firebrick\", linewidth = 0.7\n    ) +\n    annotate(\n      \"text\",\n      x = events$date,\n      y = max(weekly$net, na.rm = TRUE) * 0.9,\n      label = events$label,\n      angle = 90, hjust = 1, size = 3, color = \"firebrick\"\n    )\n}\n\np"
+  },
+  {
+    "objectID": "analysis/report.html#day-rolling-average-by-country",
+    "href": "analysis/report.html#day-rolling-average-by-country",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "7-Day Rolling Average by Country",
+    "text": "7-Day Rolling Average by Country\n\n\nCode\ndaily &lt;- df |&gt;\n  group_by(country, published_date) |&gt;\n  summarise(net = mean(bert_net, na.rm = TRUE), .groups = \"drop\") |&gt;\n  arrange(country, published_date) |&gt;\n  group_by(country) |&gt;\n  mutate(rolling_net = rollmean(net, k = 7, fill = NA, align = \"right\")) |&gt;\n  ungroup()\n\ndaily |&gt;\n  ggplot(aes(x = published_date, y = rolling_net, color = country)) +\n  geom_line(linewidth = 1, na.rm = TRUE) +\n  geom_hline(yintercept = 0, linetype = \"dashed\", color = \"grey50\") +\n  scale_color_viridis_d(option = \"turbo\", name = \"Country\") +\n  scale_x_date(date_breaks = \"2 weeks\", date_labels = \"%b %d\") +\n  labs(\n    title = \"7-day rolling average net sentiment by country\",\n    x = NULL, y = \"Rolling avg net sentiment\"\n  ) +\n  theme_minimal(base_size = 13)"
+  },
+  {
+    "objectID": "analysis/report.html#small-multiples-sentiment-per-outlet-over-time",
+    "href": "analysis/report.html#small-multiples-sentiment-per-outlet-over-time",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Small Multiples: Sentiment per Outlet Over Time",
+    "text": "Small Multiples: Sentiment per Outlet Over Time\n\n\nCode\nweekly_outlet &lt;- df |&gt;\n  group_by(country, outlet_name, week) |&gt;\n  summarise(net = mean(bert_net, na.rm = TRUE), n = n(), .groups = \"drop\")\n\nweekly_outlet |&gt;\n  ggplot(aes(x = week, y = net, fill = net &gt; 0)) +\n  geom_col(width = 6) +\n  geom_hline(yintercept = 0, color = \"grey40\") +\n  facet_wrap(country ~ outlet_name, scales = \"free_x\", ncol = 5) +\n  scale_fill_manual(values = c(\"TRUE\" = \"#1976D2\", \"FALSE\" = \"#D32F2F\"), guide = \"none\") +\n  scale_x_date(date_labels = \"%b\") +\n  labs(\n    title = \"Weekly net sentiment per outlet\",\n    x = NULL, y = \"Net sentiment\"\n  ) +\n  theme_minimal(base_size = 9) +\n  theme(\n    strip.text = element_text(size = 7, face = \"bold\"),\n    axis.text  = element_text(size = 6)\n  )"
+  },
+  {
+    "objectID": "analysis/report.html#sentiment-volatility-by-country",
+    "href": "analysis/report.html#sentiment-volatility-by-country",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Sentiment Volatility by Country",
+    "text": "Sentiment Volatility by Country\nWhich countries show the most inconsistent sentiment week-to-week?\n\n\nCode\nweekly |&gt;\n  group_by(country) |&gt;\n  summarise(\n    mean_net = mean(net, na.rm = TRUE),\n    sd_net   = sd(net, na.rm = TRUE),\n    .groups  = \"drop\"\n  ) |&gt;\n  ggplot(aes(x = mean_net, y = sd_net, label = country)) +\n  geom_point(aes(size = sd_net), color = \"#1976D2\", alpha = 0.8) +\n  ggrepel::geom_text_repel(size = 4) +\n  scale_size_continuous(guide = \"none\") +\n  labs(\n    title = \"Sentiment volatility by country\",\n    subtitle = \"X = average stance, Y = week-to-week consistency (higher = more volatile)\",\n    x = \"Mean net sentiment\", y = \"SD of weekly net sentiment\"\n  ) +\n  theme_minimal(base_size = 13)"
+  },
+  {
+    "objectID": "analysis/report.html#conclusions",
+    "href": "analysis/report.html#conclusions",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Conclusions",
+    "text": "Conclusions\n[To be written after running the analysis — summarize key findings about sentiment differences across geographies, notable outliers, and temporal patterns.]"
+  },
+  {
+    "objectID": "analysis/report.html#reproducibility",
+    "href": "analysis/report.html#reproducibility",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Reproducibility",
+    "text": "Reproducibility\nAll code is available at github.com/andreabusolo/war-sentiment.\nTo reproduce:\n# 1. Install Python dependencies\npython -m venv .venv && source .venv/bin/activate\npip install -r requirements.txt\n\n# 2. Collect GDELT data (requires GOOGLE_APPLICATION_CREDENTIALS)\npython -m src.collect.gdelt_query\n\n# 3. Scrape full article text\npython -m src.collect.scraper\n\n# 4. Preprocess\npython -m src.preprocess.pipeline\n\n# 5. Run sentiment inference\npython -m src.sentiment.inference\n\n# 6. Validate and export summary\npython -m src.sentiment.export\n\n# 7. Render Quarto report\nquarto render analysis/report.qmd"
+  },
+  {
+    "objectID": "analysis/report.html#model-confidence-by-country",
+    "href": "analysis/report.html#model-confidence-by-country",
+    "title": "Media Sentiment on the Iran–Israel Conflict",
+    "section": "Model Confidence by Country",
+    "text": "Model Confidence by Country\nGDELT tone scores are not available via the Doc API (they are only computed in the BigQuery GKG pipeline), so cross-validation against GDELT is not possible here. As an alternative quality check, the chart below shows the distribution of BERT prediction confidence — the probability assigned to the winning class — for each country. High median confidence (&gt; 0.8) indicates the model is making clear, unambiguous predictions rather than borderline calls.\n\n\nCode\ndf |&gt;\n  mutate(\n    confidence = pmax(bert_positive, bert_neutral, bert_negative, na.rm = TRUE),\n    country    = reorder(country, confidence, FUN = median, na.rm = TRUE)\n  ) |&gt;\n  ggplot(aes(x = confidence, y = country, fill = after_stat(x))) +\n  geom_density_ridges_gradient(scale = 1.8, rel_min_height = 0.01, quantile_lines = TRUE, quantiles = 2) +\n  scale_fill_viridis(option = \"magma\", name = \"Confidence\", direction = -1) +\n  scale_x_continuous(labels = percent_format(accuracy = 1), limits = c(0.3, 1)) +\n  geom_vline(xintercept = 0.8, linetype = \"dashed\", color = \"white\", linewidth = 0.6) +\n  labs(\n    title = \"BERT prediction confidence by country\",\n    subtitle = \"Vertical line = 0.80 threshold · median marked by quantile line\",\n    x = \"Confidence (probability of predicted class)\", y = NULL\n  ) +\n  theme_minimal(base_size = 13)\n\n\nPicking joint bandwidth of 0.0434"
+  }
+]
