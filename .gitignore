@@ -1,9 +1,5 @@
-# Data (never commit raw or processed data)
-data/
-output/
-*.parquet
-*.csv
-*.json.gz
+# Credentials
+# (data/ and output/ are committed)
 
 # Credentials
 .env
