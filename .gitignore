@@ -1,0 +1,44 @@
+# Data (never commit raw or processed data)
+data/
+output/
+*.parquet
+*.csv
+*.json.gz
+
+# Credentials
+.env
+*-credentials.json
+*-service-account.json
+gcloud-credentials.json
+GOOGLE_APPLICATION_CREDENTIALS
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+dist/
+build/
+.pytest_cache/
+*.egg
+
+# R / renv
+renv/library/
+renv/staging/
+renv/sandbox/
+.Rproj.user/
+.Rhistory
+.RData
+*.Rproj
+
+# Quarto
+/.quarto/
+_freeze/
+
+# OS
+.DS_Store
+Thumbs.db
+
+**/*.quarto_ipynb

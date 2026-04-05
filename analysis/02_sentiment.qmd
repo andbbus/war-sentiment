@@ -1,0 +1,146 @@
+
+```{r setup-02, include=FALSE}
+library(tidyverse)
+library(arrow)
+library(viridis)
+library(patchwork)
+library(ggridges)
+library(scales)
+
+df <- read_parquet("../data/processed/articles_with_sentiment.parquet") |>
+  mutate(
+    published_date = as.Date(published_date),
+    bert_net = bert_positive - bert_negative
+  )
+
+# Country-level averages
+country_avg <- df |>
+  group_by(country) |>
+  summarise(
+    positive = mean(bert_positive, na.rm = TRUE),
+    neutral  = mean(bert_neutral,  na.rm = TRUE),
+    negative = mean(bert_negative, na.rm = TRUE),
+    net      = mean(bert_net,      na.rm = TRUE),
+    gdelt    = mean(gdelt_tone,    na.rm = TRUE),
+    n        = n(),
+    .groups  = "drop"
+  )
+
+# Outlet-level averages
+outlet_avg <- df |>
+  group_by(country, outlet_name) |>
+  summarise(
+    net = mean(bert_net, na.rm = TRUE),
+    n   = n(),
+    .groups = "drop"
+  )
+```
+
+## Sentiment Heatmap
+
+Country × sentiment dimension (avg BERT probabilities).
+
+```{r heatmap, fig.height=5, fig.width=8}
+country_avg |>
+  pivot_longer(c(positive, neutral, negative), names_to = "sentiment", values_to = "prob") |>
+  mutate(sentiment = factor(sentiment, levels = c("positive", "neutral", "negative"))) |>
+  ggplot(aes(x = sentiment, y = reorder(country, net), fill = prob)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = round(prob, 2)), size = 3.5, color = "white") +
+  scale_fill_viridis(option = "plasma", name = "Avg probability") +
+  labs(
+    title = "Average BERT sentiment probabilities by country",
+    x = "Sentiment class", y = NULL
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom", legend.key.width = unit(2, "cm"))
+```
+
+## Net Sentiment by Outlet
+
+```{r outlet-bars, fig.height=9, fig.width=10}
+corpus_mean <- mean(df$bert_net, na.rm = TRUE)
+
+outlet_avg |>
+  mutate(
+    direction = ifelse(net > corpus_mean, "above average", "below average"),
+    outlet_name = reorder(outlet_name, net)
+  ) |>
+  ggplot(aes(x = net, y = outlet_name, fill = direction)) +
+  geom_col() +
+  geom_vline(xintercept = corpus_mean, linetype = "dashed", color = "grey40") +
+  facet_wrap(~country, scales = "free_y", ncol = 3) +
+  scale_fill_manual(
+    values = c("above average" = "#2196F3", "below average" = "#F44336"),
+    guide = "none"
+  ) +
+  labs(
+    title = "Net sentiment (positive − negative) by outlet",
+    subtitle = "Dashed line = corpus mean",
+    x = "Net sentiment score", y = NULL
+  ) +
+  theme_minimal(base_size = 11)
+```
+
+## Sentiment Distribution (Ridge Plot)
+
+```{r ridges, fig.height=7, fig.width=9}
+df |>
+  mutate(country = reorder(country, bert_net, FUN = mean, na.rm = TRUE)) |>
+  ggplot(aes(x = bert_net, y = country, fill = after_stat(x))) +
+  geom_density_ridges_gradient(scale = 2, rel_min_height = 0.01) +
+  scale_fill_viridis(option = "cividis", name = "Net sentiment") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "white", linewidth = 0.8) +
+  labs(
+    title = "Distribution of net sentiment (positive − negative) by country",
+    x = "Net sentiment score", y = NULL
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+## Diverging Bar: Most vs Least Positive Outlets
+
+```{r diverging, fig.height=7, fig.width=9}
+outlet_avg |>
+  mutate(
+    label = paste0(outlet_name, " (", country, ")"),
+    label = reorder(label, net)
+  ) |>
+  ggplot(aes(x = net, y = label, fill = net > 0)) +
+  geom_col() +
+  geom_vline(xintercept = 0, color = "grey30") +
+  scale_fill_manual(
+    values = c("TRUE" = "#1976D2", "FALSE" = "#D32F2F"),
+    labels = c("Net positive", "Net negative"),
+    name   = NULL
+  ) +
+  labs(
+    title = "Outlets ranked by net sentiment",
+    x = "Net sentiment (positive − negative)", y = NULL
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "top")
+```
+
+## Model Confidence by Country
+
+GDELT tone scores are not available via the Doc API (they are only computed in the BigQuery GKG pipeline), so cross-validation against GDELT is not possible here. As an alternative quality check, the chart below shows the distribution of BERT **prediction confidence** — the probability assigned to the winning class — for each country. High median confidence (> 0.8) indicates the model is making clear, unambiguous predictions rather than borderline calls.
+
+```{r validation, fig.height=6, fig.width=9}
+df |>
+  mutate(
+    confidence = pmax(bert_positive, bert_neutral, bert_negative, na.rm = TRUE),
+    country    = reorder(country, confidence, FUN = median, na.rm = TRUE)
+  ) |>
+  ggplot(aes(x = confidence, y = country, fill = after_stat(x))) +
+  geom_density_ridges_gradient(scale = 1.8, rel_min_height = 0.01, quantile_lines = TRUE, quantiles = 2) +
+  scale_fill_viridis(option = "magma", name = "Confidence", direction = -1) +
+  scale_x_continuous(labels = percent_format(accuracy = 1), limits = c(0.3, 1)) +
+  geom_vline(xintercept = 0.8, linetype = "dashed", color = "white", linewidth = 0.6) +
+  labs(
+    title = "BERT prediction confidence by country",
+    subtitle = "Vertical line = 0.80 threshold · median marked by quantile line",
+    x = "Confidence (probability of predicted class)", y = NULL
+  ) +
+  theme_minimal(base_size = 13)
+```

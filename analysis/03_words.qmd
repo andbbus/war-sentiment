@@ -1,0 +1,133 @@
+
+```{r setup-03, include=FALSE}
+library(tidyverse)
+library(arrow)
+library(tidytext)
+library(ggwordcloud)
+library(stopwords)
+library(scales)
+
+df <- read_parquet("../data/processed/articles_with_sentiment.parquet") |>
+  mutate(published_date = as.Date(published_date))
+
+# Language code → stopwords source language
+lang_map <- c(
+  en = "en", it = "it", es = "es", fr = "fr",
+  de = "de", pt = "pt"
+)
+
+# Build a combined stopwords list for all languages
+all_stopwords <- bind_rows(
+  lapply(names(lang_map), function(lang) {
+    tryCatch(
+      tibble(
+        word     = stopwords(language = lang, source = "snowball"),
+        language = lang
+      ),
+      error = function(e) tibble(word = character(0), language = lang)
+    )
+  })
+)
+
+# Tokenize: one row per word per article
+tokens <- df |>
+  select(article_id, country, language, full_text) |>
+  unnest_tokens(word, full_text) |>
+  # Remove pure numeric tokens
+  filter(!str_detect(word, "^\\d+$")) |>
+  # Remove stopwords per language
+  left_join(all_stopwords, by = c("word", "language")) |>
+  # Keep only rows where stopword match is NA (i.e., NOT a stopword)
+  # Trick: anti_join style via left join + filter
+  # We mark stopwords, then remove them
+  mutate(is_stop = !is.na(language)) |>
+  # Actually redo this properly:
+  # (tidytext anti_join approach doesn't handle multilingual well, so we do it manually)
+  select(-is_stop)
+
+# Proper multilingual stopword removal
+tokens_clean <- tokens |>
+  anti_join(all_stopwords, by = c("word", "language")) |>
+  filter(nchar(word) > 2)
+```
+
+## Word Clouds per Country
+
+```{r wordclouds, fig.height=12, fig.width=14, warning=FALSE}
+top_words <- tokens_clean |>
+  count(country, word, sort = TRUE) |>
+  group_by(country) |>
+  slice_max(n, n = 80) |>
+  ungroup()
+
+top_words |>
+  ggplot(aes(label = word, size = n, color = n)) +
+  geom_text_wordcloud(rm_outside = TRUE, seed = 42) +
+  scale_size_area(max_size = 10) +
+  scale_color_viridis_c(option = "plasma") +
+  facet_wrap(~country, ncol = 3) +
+  theme_minimal(base_size = 12) +
+  theme(strip.text = element_text(face = "bold", size = 13)) +
+  labs(title = "Most frequent words per country (native language, stopwords removed)")
+```
+
+## TF-IDF: Most Distinctive Words per Country
+
+TF-IDF measures which words are *distinctive* to each country relative to the full corpus.
+
+```{r tfidf, fig.height=11, fig.width=12}
+tfidf <- tokens_clean |>
+  count(country, word, sort = TRUE) |>
+  bind_tf_idf(word, country, n) |>
+  group_by(country) |>
+  slice_max(tf_idf, n = 10) |>
+  ungroup()
+
+tfidf |>
+  mutate(word = reorder_within(word, tf_idf, country)) |>
+  ggplot(aes(x = tf_idf, y = word, fill = country)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~country, scales = "free_y", ncol = 3) +
+  scale_y_reordered() +
+  scale_fill_viridis_d(option = "turbo") +
+  labs(
+    title = "Most distinctive words per country (TF-IDF)",
+    subtitle = "Words with high TF-IDF are used much more by this country than others",
+    x = "TF-IDF score", y = NULL
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(strip.text = element_text(face = "bold"))
+```
+
+## Bigram Analysis
+
+```{r bigrams, fig.height=11, fig.width=12}
+bigrams <- df |>
+  select(article_id, country, language, full_text) |>
+  unnest_tokens(bigram, full_text, token = "ngrams", n = 2) |>
+  separate(bigram, into = c("word1", "word2"), sep = " ") |>
+  # Remove bigrams containing stopwords
+  anti_join(all_stopwords, by = c("word1" = "word", "language")) |>
+  anti_join(all_stopwords, by = c("word2" = "word", "language")) |>
+  filter(nchar(word1) > 2, nchar(word2) > 2) |>
+  filter(!str_detect(word1, "^\\d+$"), !str_detect(word2, "^\\d+$")) |>
+  unite(bigram, word1, word2, sep = " ") |>
+  count(country, bigram, sort = TRUE) |>
+  group_by(country) |>
+  slice_max(n, n = 10) |>
+  ungroup()
+
+bigrams |>
+  mutate(bigram = reorder_within(bigram, n, country)) |>
+  ggplot(aes(x = n, y = bigram, fill = country)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~country, scales = "free_y", ncol = 3) +
+  scale_y_reordered() +
+  scale_fill_viridis_d(option = "turbo") +
+  labs(
+    title = "Most common two-word phrases per country",
+    x = "Count", y = NULL
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(strip.text = element_text(face = "bold"))
+```

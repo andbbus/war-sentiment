@@ -1,0 +1,84 @@
+
+```{r setup-01, include=FALSE}
+library(tidyverse)
+library(arrow)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(lubridate)
+
+df <- read_parquet("../data/processed/articles_with_sentiment.parquet") |>
+  mutate(
+    published_date = as_date(published_date),
+    week = floor_date(published_date, "week")
+  )
+```
+
+## Dataset Summary
+
+```{r article-counts}
+df |>
+  group_by(country, outlet_name) |>
+  summarise(
+    articles    = n(),
+    avg_words   = round(mean(word_count, na.rm = TRUE)),
+    date_min    = min(published_date, na.rm = TRUE),
+    date_max    = max(published_date, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  arrange(country, desc(articles)) |>
+  kbl(
+    col.names = c("Country", "Outlet", "Articles", "Avg Words", "First", "Last"),
+    caption   = "Article counts and coverage per outlet"
+  ) |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) |>
+  collapse_rows(columns = 1, valign = "top")
+```
+
+## Articles per Country
+
+```{r country-bar, fig.height=5}
+df |>
+  count(country, scrape_status) |>
+  ggplot(aes(x = reorder(country, n), y = n, fill = scrape_status)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_brewer(palette = "Set2", name = "Scrape status") +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Articles per country",
+    x = NULL, y = "Article count"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+## Weekly Coverage
+
+```{r weekly, fig.height=4}
+df |>
+  count(week) |>
+  ggplot(aes(x = week, y = n)) +
+  geom_col(fill = "#4472C4") +
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%b %d") +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Articles per week (all countries)",
+    x = NULL, y = "Count"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+## Language Validation
+
+```{r lang-table}
+df |>
+  group_by(country, language, detected_language) |>
+  summarise(articles = n(), .groups = "drop") |>
+  mutate(match = ifelse(substr(language, 1, 2) == substr(detected_language, 1, 2), "✓", "✗")) |>
+  arrange(country) |>
+  kbl(
+    col.names = c("Country", "Expected lang", "Detected lang", "Articles", "Match"),
+    caption   = "Language validation summary"
+  ) |>
+  kable_styling(bootstrap_options = c("striped", "condensed"))
+```

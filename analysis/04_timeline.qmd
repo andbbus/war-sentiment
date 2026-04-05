@@ -1,0 +1,147 @@
+
+```{r setup-04, include=FALSE}
+library(tidyverse)
+library(arrow)
+library(lubridate)
+library(zoo)
+library(scales)
+library(patchwork)
+library(viridis)
+
+df <- read_parquet("../data/processed/articles_with_sentiment.parquet") |>
+  mutate(
+    published_date = as.Date(published_date),
+    week           = floor_date(published_date, "week"),
+    bert_net       = bert_positive - bert_negative
+  )
+
+# Known major Iran-Israel events in the analysis window (Jan–Apr 2026)
+# Update these based on actual events during your analysis period
+events <- tibble(
+  date  = as.Date(c(
+    # Add real event dates here, e.g.:
+    # "2026-01-15", "2026-02-20", "2026-03-10"
+  )),
+  label = c(
+    # "Event label 1", "Event label 2", "Event label 3"
+  )
+)
+```
+
+## Weekly Sentiment Trends by Country
+
+```{r weekly-trend, fig.height=8, fig.width=12}
+weekly <- df |>
+  group_by(country, week) |>
+  summarise(
+    net = mean(bert_net, na.rm = TRUE),
+    n   = n(),
+    .groups = "drop"
+  )
+
+p <- weekly |>
+  ggplot(aes(x = week, y = net, color = country, group = country)) +
+  geom_line(linewidth = 0.8, alpha = 0.9) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  scale_color_viridis_d(option = "turbo", name = "Country") +
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%b %d") +
+  labs(
+    title = "Weekly average net sentiment by country",
+    subtitle = "Net sentiment = BERT positive − negative probability",
+    x = NULL, y = "Net sentiment"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "right")
+
+# Add event annotations if any exist
+if (nrow(events) > 0) {
+  p <- p +
+    geom_vline(
+      data = events,
+      aes(xintercept = date),
+      linetype = "dotted", color = "firebrick", linewidth = 0.7
+    ) +
+    annotate(
+      "text",
+      x = events$date,
+      y = max(weekly$net, na.rm = TRUE) * 0.9,
+      label = events$label,
+      angle = 90, hjust = 1, size = 3, color = "firebrick"
+    )
+}
+
+p
+```
+
+## 7-Day Rolling Average by Country
+
+```{r rolling, fig.height=8, fig.width=12}
+daily <- df |>
+  group_by(country, published_date) |>
+  summarise(net = mean(bert_net, na.rm = TRUE), .groups = "drop") |>
+  arrange(country, published_date) |>
+  group_by(country) |>
+  mutate(rolling_net = rollmean(net, k = 7, fill = NA, align = "right")) |>
+  ungroup()
+
+daily |>
+  ggplot(aes(x = published_date, y = rolling_net, color = country)) +
+  geom_line(linewidth = 1, na.rm = TRUE) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  scale_color_viridis_d(option = "turbo", name = "Country") +
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%b %d") +
+  labs(
+    title = "7-day rolling average net sentiment by country",
+    x = NULL, y = "Rolling avg net sentiment"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+## Small Multiples: Sentiment per Outlet Over Time
+
+```{r small-multiples, fig.height=14, fig.width=14}
+weekly_outlet <- df |>
+  group_by(country, outlet_name, week) |>
+  summarise(net = mean(bert_net, na.rm = TRUE), n = n(), .groups = "drop")
+
+weekly_outlet |>
+  ggplot(aes(x = week, y = net, fill = net > 0)) +
+  geom_col(width = 6) +
+  geom_hline(yintercept = 0, color = "grey40") +
+  facet_wrap(country ~ outlet_name, scales = "free_x", ncol = 5) +
+  scale_fill_manual(values = c("TRUE" = "#1976D2", "FALSE" = "#D32F2F"), guide = "none") +
+  scale_x_date(date_labels = "%b") +
+  labs(
+    title = "Weekly net sentiment per outlet",
+    x = NULL, y = "Net sentiment"
+  ) +
+  theme_minimal(base_size = 9) +
+  theme(
+    strip.text = element_text(size = 7, face = "bold"),
+    axis.text  = element_text(size = 6)
+  )
+```
+
+## Sentiment Volatility by Country
+
+Which countries show the most *inconsistent* sentiment week-to-week?
+
+```{r volatility, fig.height=5, fig.width=8}
+weekly |>
+  group_by(country) |>
+  summarise(
+    mean_net = mean(net, na.rm = TRUE),
+    sd_net   = sd(net, na.rm = TRUE),
+    .groups  = "drop"
+  ) |>
+  ggplot(aes(x = mean_net, y = sd_net, label = country)) +
+  geom_point(aes(size = sd_net), color = "#1976D2", alpha = 0.8) +
+  ggrepel::geom_text_repel(size = 4) +
+  scale_size_continuous(guide = "none") +
+  labs(
+    title = "Sentiment volatility by country",
+    subtitle = "X = average stance, Y = week-to-week consistency (higher = more volatile)",
+    x = "Mean net sentiment", y = "SD of weekly net sentiment"
+  ) +
+  theme_minimal(base_size = 13)
+```

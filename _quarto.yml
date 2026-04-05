@@ -1,0 +1,31 @@
+project:
+  type: website
+  output-dir: output
+
+execute:
+  freeze: auto
+
+website:
+  title: "War Sentiment"
+  navbar:
+    left:
+      - href: analysis/report.qmd
+        text: Report
+      - href: analysis/01_overview.qmd
+        text: Overview
+      - href: analysis/02_sentiment.qmd
+        text: Sentiment
+      - href: analysis/03_words.qmd
+        text: Words
+      - href: analysis/04_timeline.qmd
+        text: Timeline
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: true
+    code-tools: true
+    fig-width: 10
+    fig-height: 7
+    fig-dpi: 150

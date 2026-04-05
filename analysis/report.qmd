@@ -1,0 +1,104 @@
+---
+title: "Media Sentiment on the Iran–Israel Conflict"
+subtitle: "A Cross-Country Analysis · January–April 2026"
+author: "Andrea Busolo"
+date: today
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    toc-title: "Contents"
+    code-fold: true
+    code-tools: true
+    fig-width: 10
+    fig-height: 7
+    fig-dpi: 150
+    embed-resources: true
+---
+
+## Introduction
+
+This analysis examines how newspapers across **11 countries and regions** frame and
+report on the Iran–Israel conflict during the period **January 4 – April 4, 2026**.
+
+We collected articles from 55 major outlets using the **GDELT Global Knowledge Graph**,
+extracted full text via web scraping, and ran multilingual sentiment analysis using
+**XLM-RoBERTa** — a transformer model trained on 100+ languages. This allows us to
+analyze Italian, Spanish, French, German, and Portuguese articles in their *native language*
+without losing linguistic nuance through translation.
+
+### Countries and outlets covered
+
+| Region | Country | Language | Outlets |
+|--------|---------|----------|---------|
+| North America | USA | English | NYT, Washington Post, Fox News, CNN, WSJ |
+| North America | Canada | English | Globe and Mail, Toronto Star, National Post, CBC, CTV |
+| Europe | UK | English | The Guardian, BBC, The Times, Daily Mail, The Independent |
+| Europe | Italy | Italian | Corriere della Sera, La Repubblica, La Stampa, Il Sole 24 Ore, ANSA |
+| Europe | Spain | Spanish | El País, El Mundo, ABC, La Vanguardia, El Confidencial |
+| Europe | France | French | Le Monde, Le Figaro, Libération, Le Parisien, BFM TV |
+| Europe | Germany | German | Der Spiegel, Die Zeit, FAZ, Süddeutsche Zeitung, Bild |
+| South America | Brazil | Portuguese | Folha, O Globo, Estadão, UOL, Veja |
+| South America | Argentina | Spanish | La Nación, Clarín, Infobae, Página 12, Perfil |
+| Middle East | Al-Jazeera | English | aljazeera.com |
+| Middle East | Israel | English | Jerusalem Post, Haaretz, Times of Israel, Ynet, Israel National News |
+
+### Methodology
+
+1. **Data collection**: GDELT 2.0 GKG queried via Google BigQuery, filtered by source domain and Iran/Israel/War themes.
+2. **Article scraping**: Full text extracted with `trafilatura`; paywalled articles use available snippets.
+3. **Sentiment model**: `cardiffnlp/xlm-roberta-base-sentiment-multilingual` — 3-class classification (positive / neutral / negative). Long articles chunked into 510-token windows with 50-token overlap; probabilities aggregated by token-weighted average.
+4. **Validation**: BERT sentiment cross-validated against GDELT's built-in tone scores.
+
+---
+
+{{< include 01_overview.qmd >}}
+
+---
+
+{{< include 02_sentiment.qmd >}}
+
+---
+
+{{< include 03_words.qmd >}}
+
+---
+
+{{< include 04_timeline.qmd >}}
+
+---
+
+## Conclusions
+
+*[To be written after running the analysis — summarize key findings about sentiment differences across geographies, notable outliers, and temporal patterns.]*
+
+## Reproducibility
+
+All code is available at [github.com/andbbus/war-sentiment](https://github.com/andbbus/war-sentiment).
+
+To reproduce:
+
+```bash
+# 1. Install Python dependencies
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# 2. Collect GDELT data (requires GOOGLE_APPLICATION_CREDENTIALS)
+python -m src.collect.gdelt_query
+
+# 3. Scrape full article text
+python -m src.collect.scraper
+
+# 4. Preprocess
+python -m src.preprocess.pipeline
+
+# 5. Run sentiment inference
+python -m src.sentiment.inference
+
+# 6. Validate and export summary
+python -m src.sentiment.export
+
+# 7. Render Quarto report
+quarto render analysis/report.qmd
+```
