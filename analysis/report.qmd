@@ -115,7 +115,8 @@ before_peak <- weekly_n |> filter(week < as.Date("2026-02-16"), n >= MIN_WEEK_N)
   do, and outlets within one country can differ as much as countries (ANSA and Corriere della
   Sera in Italy).
 - **Israeli outlets are less negative than other English-language outlets**, by about 0.12.
-  This is the cleanest comparison in the report because the language is held fixed. Their
+  This is the cleanest comparison in the report because the language is held fixed, and it
+  is not a matter of timing: the gap is the same in January–February and in March–April. Their
   distinctive vocabulary is domestic: the IDF, normalization, the shekel.
 - **The escalation changed the volume more than the tone.** Coverage rose from about
   `r round(before_peak)` articles a week in January and early February to
@@ -131,9 +132,16 @@ before_peak <- weekly_n |> filter(week < as.Date("2026-02-16"), n >= MIN_WEEK_N)
   about bias or framing would need a stance measure aimed at each actor.
 - **Comparisons across languages are fragile.** The model is not equally calibrated in every
   language. German coverage is the least negative and the most neutral, and it is so for the
-  tabloid Bild as much as for Die Zeit and the Süddeutsche Zeitung. That pattern points to how
-  the model reads German more than to German editorial style. Comparisons within one language,
-  such as the English-language sources, are the ones to trust.
+  tabloid Bild as much as for Die Zeit and the Süddeutsche Zeitung. Part of the gap is genre:
+  liveblogs and agency copy read as less negative in every country, and much of the German
+  sample is one or the other. Among the 42 German articles that are neither, the gap to other
+  countries shrinks from 0.14 to about 0.10, but their neutral probability stays far higher
+  (0.38 against 0.22). That residue points to how the model reads German rather than to
+  editorial style, though 42 articles cannot settle it. Comparisons within one language, such
+  as the English-language sources, are the ones to trust.
+- **Genre mix shifts averages.** Because liveblogs and wire copy are less negative everywhere,
+  an outlet's or country's average partly reflects how much of its sample is live or agency
+  copy (ANSA in Italy is an example).
 - **The labels are soft.** Median confidence stays below 0.80 in every country. Class shares
   are tendencies, and the net score, which uses the full probabilities, is the better summary.
 - **The sample is not a census.** Eleven outlets returned nothing, most likely because the
