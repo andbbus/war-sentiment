@@ -1,14 +1,16 @@
 # war-sentiment
 
 Cross-country sentiment analysis of media coverage of the **Iran–Israel conflict**
-(January–April 2026). Compares framing, word usage, and sentiment across newspapers
-in 11 countries using multilingual BERT.
+(4 January – 4 April 2026). Compares framing, word usage, and sentiment across news
+outlets in 10 countries, plus Al Jazeera as a separate source, using a multilingual
+XLM-RoBERTa sentiment model. 51 outlets were queried; 36 contribute articles to the
+final sample of 3,258.
 
 **[View the report →](https://andbbus.github.io/war-sentiment/analysis/report.html)** 
 
 ## Results at a glance
 
-| Country | Articles | % Negative | % Neutral | % Positive |
+| Country / source | Articles | % Negative | % Neutral | % Positive |
 |---------|----------|-----------|----------|-----------|
 | Al-Jazeera | 329 | 94.8% | 5.2% | 0.0% |
 | USA | 333 | 94.0% | 5.4% | 0.6% |
@@ -94,9 +96,23 @@ python -m src.sentiment.inference
 # Step 5: Export and validate
 python -m src.sentiment.export
 
-# Step 6: Render report
-quarto render analysis/report.qmd --output-dir output/
+# Step 6: Render the site (output in docs/, served by GitHub Pages)
+quarto render
 ```
+
+## Data in this repository
+
+Full article text is **not** redistributed: it belongs to the publishers. The repository
+ships only what can be shared:
+
+- `data/raw/gdelt_articles.parquet`: GDELT metadata (URL, headline, outlet, date) for all 4,105 articles.
+- `data/processed/article_sentiment_scores.csv`: the 3,258 analysed articles with outlet,
+  country, word count and XLM-RoBERTa class probabilities, without the text.
+- `data/processed/summary_by_country.csv`: the country-level table above.
+
+The analysis notebooks read `data/processed/articles_with_sentiment.parquet`, which steps 2–5
+rebuild locally. The scraped text will differ slightly from the original run where outlets
+have since changed or paywalled pages.
 
 ## Project structure
 
@@ -104,8 +120,8 @@ quarto render analysis/report.qmd --output-dir output/
 war-sentiment/
 ├── data/
 │   ├── raw/                    # GDELT Doc API results (4,105 articles)
-│   ├── scraped/                # Full article text (3,928 ok, 177 empty)
-│   └── processed/              # Clean + sentiment-scored articles (3,258)
+│   ├── scraped/                # Full article text (local only, not committed)
+│   └── processed/              # Sentiment scores without text (3,258) + country summary
 ├── src/
 │   ├── collect/
 │   │   ├── config.py           # All outlet domains, languages, date range
@@ -124,7 +140,7 @@ war-sentiment/
 │   ├── 02_sentiment.qmd        # Sentiment comparison
 │   ├── 03_words.qmd            # Word clouds + TF-IDF
 │   └── 04_timeline.qmd         # Temporal trends
-├── output/                     # Rendered HTML report (GitHub Pages)
+├── docs/                       # Rendered site (GitHub Pages)
 ├── _quarto.yml
 └── requirements.txt
 ```

@@ -38,3 +38,9 @@ _freeze/
 Thumbs.db
 
 **/*.quarto_ipynb
+
+# Full article text is not redistributed (publisher copyright).
+# The pipeline rebuilds these files locally.
+data/scraped/
+data/processed/articles_clean.parquet
+data/processed/articles_with_sentiment.parquet
