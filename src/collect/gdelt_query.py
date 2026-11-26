@@ -164,11 +164,14 @@ def collect_domain(domain: str, start: str, end: str, failures: list, dry_run: b
     start_dt = datetime.strptime(start, "%Y-%m-%d")
     end_dt = datetime.strptime(end, "%Y-%m-%d") + timedelta(days=1)   # DATE_END is inclusive
     if dry_run:
-        return collect_window(domain, start_dt, end_dt, failures, max_records=3)
-    out = []
-    for s, e in _slices(start_dt, end_dt, SLICE_DAYS):
-        out.extend(collect_window(domain, s, e, failures, MAX_RECORDS))
-    return out
+        out = collect_window(domain, start_dt, end_dt, failures, max_records=3)
+    else:
+        out = []
+        for s, e in _slices(start_dt, end_dt, SLICE_DAYS):
+            out.extend(collect_window(domain, s, e, failures, MAX_RECORDS))
+    # The API filters on its own timestamp; keep only articles first seen inside the window
+    return [a for a in out
+            if a["published_date"] and start_dt.date() <= a["published_date"] < end_dt.date()]
 
 
 def main():
