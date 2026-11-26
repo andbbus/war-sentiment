@@ -1,0 +1,162 @@
+## Sentiment over Time
+
+```{r time-data, include=FALSE}
+weekly_all <- scores |>
+  group_by(week) |>
+  summarise(net = mean(bert_net), se = sd(bert_net) / sqrt(n()), n = n(), .groups = "drop") |>
+  filter(n >= MIN_WEEK_N)
+
+weekly_country <- scores |>
+  group_by(country, week) |>
+  summarise(net = mean(bert_net), var = var(bert_net), n = n(), .groups = "drop")
+
+# 7-day rolling mean over calendar days, weighted by articles: each day's value is the
+# mean of all articles in that day and the six before it; shown only with >= 5 articles.
+roll7 <- function(x) as.numeric(stats::filter(x, rep(1, 7), sides = 1))
+rolling <- scores |>
+  filter(country %in% large_countries) |>
+  group_by(country, published_date) |>
+  summarise(sum_net = sum(bert_net), n = n(), .groups = "drop") |>
+  complete(country, published_date = seq(min(published_date), max(published_date), by = "day"),
+           fill = list(sum_net = 0, n = 0)) |>
+  arrange(country, published_date) |>
+  group_by(country) |>
+  mutate(n7 = roll7(n), net7 = ifelse(n7 >= 5, roll7(sum_net) / n7, NA_real_)) |>
+  ungroup()
+
+rolling_all <- scores |>
+  group_by(published_date) |>
+  summarise(sum_net = sum(bert_net), n = n(), .groups = "drop") |>
+  complete(published_date = seq(min(published_date), max(published_date), by = "day"),
+           fill = list(sum_net = 0, n = 0)) |>
+  arrange(published_date) |>
+  mutate(n7 = roll7(n), net7 = ifelse(n7 >= 5, roll7(sum_net) / n7, NA_real_))
+
+f2n <- function(x) sub("^-", "−", sprintf("%.2f", x))
+lo_week <- slice_min(weekly_all, net, n = 1)
+hi_week <- slice_max(weekly_all, net, n = 1)
+```
+
+### Weekly net sentiment, all sources
+
+```{r weekly-all, fig.height=4.5, fig.width=10}
+ggplot(weekly_all, aes(x = week, y = net)) +
+  geom_ribbon(aes(ymin = net - 1.96 * se, ymax = net + 1.96 * se), fill = "#4472C4", alpha = 0.2) +
+  geom_line(color = "#4472C4", linewidth = 0.9) +
+  geom_point(aes(size = n), color = "#4472C4") +
+  scale_size_area(max_size = 6, name = "Articles") +
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
+  labs(
+    title = "Weekly mean net sentiment, all sources pooled",
+    subtitle = paste0("Shaded band = 95% confidence interval; weeks with at least ", MIN_WEEK_N, " articles"),
+    x = NULL, y = "Net sentiment"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+Weekly means range from `r f2n(lo_week$net)` (week of `r format(lo_week$week, "%e %B")`) to
+`r f2n(hi_week$net)` (week of `r format(hi_week$week, "%e %B")`, `r hi_week$n` articles). From
+the late-February escalation onwards they settle around −0.60 with narrow bands. Busier weeks
+tend to be more negative (correlation `r f2n(cor(weekly_all$n, weekly_all$net))` across the
+`r nrow(weekly_all)` weeks shown), which with so few points is suggestive at most.
+
+### 7-day rolling net sentiment by country
+
+```{r rolling, fig.height=7, fig.width=12}
+rolling |>
+  ggplot(aes(x = published_date, y = net7)) +
+  geom_line(data = rolling_all |> select(-any_of("country")), color = "grey70",
+            linewidth = 0.7, na.rm = TRUE) +
+  geom_line(color = "#1976D2", linewidth = 0.9, na.rm = TRUE) +
+  facet_wrap(~country, ncol = 4) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b") +
+  labs(
+    title = "7-day rolling mean of net sentiment by country",
+    subtitle = paste0("Calendar days, article-weighted, shown when the window holds at least 5 articles; ",
+                      "grey = all sources pooled. Countries with at least 100 articles."),
+    x = NULL, y = "Net sentiment"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(strip.text = element_text(face = "bold"))
+```
+
+Gaps mark stretches with fewer than five articles in seven days, which covers much of January
+and February outside Israel, the UK and Al Jazeera. From March onwards Germany and Israel stay
+above the pooled line, while the UK, the USA and Al Jazeera run slightly below it, the same
+order as in the country averages.
+
+### Weekly net sentiment per outlet
+
+```{r small-multiples, fig.height=12, fig.width=14}
+scores |>
+  add_count(outlet_name, name = "outlet_n") |>
+  filter(outlet_n >= MIN_OUTLET_N) |>
+  group_by(country, outlet_name, week) |>
+  summarise(net = mean(bert_net), n = n(), .groups = "drop") |>
+  filter(n >= 3) |>
+  mutate(panel = paste0(outlet_name, " (", country, ")")) |>
+  ggplot(aes(x = week, y = net)) +
+  geom_col(width = 6, fill = "#D32F2F") +
+  geom_hline(yintercept = 0, color = "grey40") +
+  facet_wrap(~panel, ncol = 5) +
+  scale_x_date(date_labels = "%b", limits = range(scores$week) + c(-4, 4)) +
+  labs(
+    title = "Weekly mean net sentiment per outlet",
+    subtitle = paste0("Outlets with at least ", MIN_OUTLET_N,
+                      " articles; weeks with at least 3 articles; same time axis in every panel"),
+    x = NULL, y = "Net sentiment"
+  ) +
+  theme_minimal(base_size = 9) +
+  theme(strip.text = element_text(size = 7.5, face = "bold"), axis.text = element_text(size = 6.5))
+```
+
+No outlet is net positive in any week. Most outlets only reach three articles a week from late
+February, so the early bars come mainly from the Israeli and British outlets and Al Jazeera.
+
+### Week-to-week volatility
+
+The spread of weekly means mixes real change with sampling noise: a week with few articles
+has a noisy mean. The chart compares the observed spread with the spread that noise alone
+would produce.
+
+```{r volatility, fig.height=5.5, fig.width=8}
+volatility <- weekly_country |>
+  filter(n >= MIN_WEEK_N) |>
+  group_by(country) |>
+  filter(n() >= 6) |>
+  summarise(
+    observed = sd(net),
+    noise    = sqrt(mean(var / n)),
+    weeks    = n(),
+    articles = sum(n),
+    .groups  = "drop"
+  )
+
+lim <- c(0, max(c(volatility$observed, volatility$noise)) * 1.1)
+volatility |>
+  ggplot(aes(x = noise, y = observed, label = country)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50") +
+  geom_point(aes(size = articles), color = "#1976D2", alpha = 0.8) +
+  ggrepel::geom_text_repel(size = 4) +
+  scale_size_area(max_size = 8, name = "Articles") +
+  coord_equal(xlim = lim, ylim = lim) +
+  labs(
+    title = "Observed week-to-week spread vs. sampling noise",
+    subtitle = paste0("SD of weekly means; weeks with at least ", MIN_WEEK_N,
+                      " articles,\ncountries with 6+ such weeks. Above the line = more\nmovement than sampling noise explains"),
+    x = "Expected SD from sampling noise alone", y = "Observed SD of weekly means"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+```{r volatility-numbers, include=FALSE}
+vr <- mutate(volatility, ratio = observed / noise)
+above <- filter(vr, ratio > 1)
+below <- filter(vr, ratio <= 1)
+```
+
+`r nrow(above)` of the `r nrow(vr)` countries move more than sampling noise alone would
+produce, by a factor of `r sprintf("%.1f", min(above$ratio))` to
+`r sprintf("%.1f", max(above$ratio))`, with `r above$country[which.max(above$ratio)]` the most
+changeable. `r paste(below$country, collapse = " and ")`'s weekly means vary less than noise
+would predict, but with only `r paste(below$weeks, collapse = "/")` weeks of enough articles.

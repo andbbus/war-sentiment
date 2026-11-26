@@ -1,8 +1,9 @@
 """
 Preprocessing pipeline: cleans and validates scraped articles.
 
-Reads:  data/scraped/articles_text.parquet
+Reads:  data/scraped/articles_text.parquet, data/raw/gdelt_articles.parquet
 Writes: data/processed/articles_clean.parquet
+        data/processed/pipeline_attrition.csv  (articles per country after each step)
 
 Usage:
     python -m src.preprocess.pipeline
@@ -13,7 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.collect.config import domain_to_language
+from src.collect.config import domain_for_url
 from src.preprocess.cleaner import clean_text, deduplicate, is_valid_article
 
 # ---------------------------------------------------------------------------
@@ -21,7 +22,9 @@ from src.preprocess.cleaner import clean_text, deduplicate, is_valid_article
 # ---------------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 INPUT_PATH = PROJECT_ROOT / "data" / "scraped" / "articles_text.parquet"
+RAW_PATH = PROJECT_ROOT / "data" / "raw" / "gdelt_articles.parquet"
 OUTPUT_PATH = PROJECT_ROOT / "data" / "processed" / "articles_clean.parquet"
+ATTRITION_PATH = PROJECT_ROOT / "data" / "processed" / "pipeline_attrition.csv"
 
 
 def make_article_id(url: str) -> str:
@@ -63,12 +66,24 @@ def main():
     print(f"Loading scraped articles from {INPUT_PATH}")
     df = pd.read_parquet(INPUT_PATH)
     print(f"Loaded: {len(df):,} rows")
+    attrition = {"gdelt": df.groupby("country").size()}
+
+    # ------------------------------------------------------------------
+    # Step 0: Drop URLs from other sites. GDELT's `domain:` operator matches
+    # suffixes, so e.g. tagesspiegel.de came back as spiegel.de and
+    # enfieldindependent.co.uk as independent.co.uk.
+    # ------------------------------------------------------------------
+    host_ok = df["url"].map(domain_for_url) == df["source_domain"]
+    print(f"Dropped {(~host_ok).sum():,} URLs whose host is not the outlet's domain")
+    df = df[host_ok].copy()
+    attrition["right_site"] = df.groupby("country").size()
 
     # ------------------------------------------------------------------
     # Step 1: Keep only successfully scraped articles
     # ------------------------------------------------------------------
     df = df[df["scrape_status"] == "ok"].copy()
     print(f"After status filter (ok only): {len(df):,}")
+    attrition["scraped"] = df.groupby("country").size()
 
     # ------------------------------------------------------------------
     # Step 2: Clean text
@@ -83,11 +98,13 @@ def main():
     mask = df["full_text"].apply(is_valid_article)
     df = df[mask].copy()
     print(f"After min-length filter (≥100 words): {len(df):,}")
+    attrition["min_100_words"] = df.groupby("country").size()
 
     # ------------------------------------------------------------------
     # Step 4: Deduplicate
     # ------------------------------------------------------------------
     df = deduplicate(df)
+    attrition["deduplicated"] = df.groupby("country").size()
 
     # ------------------------------------------------------------------
     # Step 5: Language validation
@@ -96,11 +113,17 @@ def main():
     n_dropped = (~lang_mask).sum()
     df = df[lang_mask].copy()
     print(f"Language validation: dropped {n_dropped:,} language-mismatched articles")
+    attrition["language_ok"] = df.groupby("country").size()
 
     # ------------------------------------------------------------------
-    # Step 6: Generate stable article IDs
+    # Step 6: Generate stable article IDs; fill missing titles from GDELT
     # ------------------------------------------------------------------
     df["article_id"] = df["url"].apply(make_article_id)
+    if "gdelt_title" not in df.columns:
+        gdelt_titles = pd.read_parquet(RAW_PATH, columns=["url", "title"]).drop_duplicates("url")
+        df["gdelt_title"] = df["url"].map(gdelt_titles.set_index("url")["title"])
+    df["title"] = df["title"].where(df["title"].notna() & (df["title"] != ""), df["gdelt_title"])
+    print(f"Titles available: {df['title'].notna().sum():,} / {len(df):,}")
 
     # ------------------------------------------------------------------
     # Step 7: Select and order final columns
@@ -146,6 +169,11 @@ def main():
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(OUTPUT_PATH, index=False)
     print(f"\nSaved {len(df):,} clean articles to {OUTPUT_PATH}")
+
+    table = pd.DataFrame(attrition).fillna(0).astype(int).rename_axis("country").reset_index()
+    table.to_csv(ATTRITION_PATH, index=False)
+    print(f"Attrition by step saved to {ATTRITION_PATH}")
+    print(table.to_string(index=False))
 
 
 if __name__ == "__main__":

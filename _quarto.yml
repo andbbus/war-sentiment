@@ -1,9 +1,11 @@
 project:
   type: website
   output-dir: docs
+  render:
+    - analysis/report.qmd
 
 execute:
-  freeze: auto
+  freeze: false   # data-driven report: always re-run the code
 
 website:
   title: "War Sentiment"

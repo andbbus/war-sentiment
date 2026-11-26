@@ -3,17 +3,25 @@ Batch sentiment inference pipeline.
 
 Reads:  data/processed/articles_clean.parquet
 Writes: data/processed/articles_with_sentiment.parquet
+        data/processed/inference_meta.json  (model, library versions, device)
 
 Usage:
-    python -m src.sentiment.inference [--batch-size 16] [--limit N]
+    python -m src.sentiment.inference [--batch-size 16] [--limit N] [--threads N]
 
 Checkpoints every 500 articles so the run can be safely interrupted and resumed.
+Resuming matches on article_id (a hash of the URL): after changing the cleaning
+step, delete the old output first, or stale scores are kept for changed texts.
 """
 
 import argparse
+import json
+import platform
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+import torch
+import transformers
 from tqdm import tqdm
 
 from src.sentiment.model import SentimentModel
@@ -24,6 +32,7 @@ from src.sentiment.model import SentimentModel
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 INPUT_PATH = PROJECT_ROOT / "data" / "processed" / "articles_clean.parquet"
 OUTPUT_PATH = PROJECT_ROOT / "data" / "processed" / "articles_with_sentiment.parquet"
+META_PATH = PROJECT_ROOT / "data" / "processed" / "inference_meta.json"
 
 CHECKPOINT_EVERY = 500
 DEFAULT_BATCH_SIZE = 16
@@ -52,7 +61,10 @@ def save_checkpoint(records: list[dict], output_path: Path):
     df_combined.to_parquet(output_path, index=False)
 
 
-def main(batch_size: int = DEFAULT_BATCH_SIZE, limit: int | None = None):
+def main(batch_size: int = DEFAULT_BATCH_SIZE, limit: int | None = None,
+         threads: int | None = None, allow_fallback: bool = False):
+    if threads:
+        torch.set_num_threads(threads)
     print(f"Loading clean articles from {INPUT_PATH}")
     df = pd.read_parquet(INPUT_PATH)
     print(f"Total articles: {len(df):,}")
@@ -72,7 +84,18 @@ def main(batch_size: int = DEFAULT_BATCH_SIZE, limit: int | None = None):
         return
 
     # Load model
-    model = SentimentModel()
+    model = SentimentModel(allow_fallback=allow_fallback)
+    META_PATH.parent.mkdir(parents=True, exist_ok=True)
+    META_PATH.write_text(json.dumps({
+        "model": model.model_name,
+        "label_index": model.label_index,
+        "device": str(model.device),
+        "torch_threads": torch.get_num_threads(),
+        "torch": torch.__version__,
+        "transformers": transformers.__version__,
+        "python": platform.python_version(),
+        "started_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }, indent=2))
 
     buffer: list[dict] = []
     rows = df.to_dict("records")
@@ -116,5 +139,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run batch sentiment inference.")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--limit", type=int, default=None, help="Max articles (for testing)")
+    parser.add_argument("--threads", type=int, default=None, help="CPU threads for torch")
+    parser.add_argument("--allow-fallback", action="store_true",
+                        help="Use the fallback model if the main one fails to load")
     args = parser.parse_args()
-    main(batch_size=args.batch_size, limit=args.limit)
+    main(batch_size=args.batch_size, limit=args.limit, threads=args.threads,
+         allow_fallback=args.allow_fallback)

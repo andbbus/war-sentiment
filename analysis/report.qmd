@@ -2,7 +2,7 @@
 title: "Media Sentiment on the Iran–Israel Conflict"
 subtitle: "A Cross-Country Analysis · January–April 2026"
 author: "Andrea Busolo"
-date: today
+date: last-modified
 format:
   html:
     theme: cosmo
@@ -15,90 +15,166 @@ format:
     fig-height: 7
     fig-dpi: 150
     embed-resources: true
+execute:
+  message: false
 ---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(arrow)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(lubridate)
+library(viridis)
+library(ggridges)
+
+processed <- "../data/processed"
+fix_names <- function(d) mutate(d, country = recode(country, AlJazeera = "Al Jazeera"))
+
+# Text-free files shipped with the repository
+scores <- read_csv(file.path(processed, "article_sentiment_scores.csv"), show_col_types = FALSE) |>
+  fix_names() |>
+  mutate(
+    published_date = as.Date(published_date),          # day GDELT first saw the article
+    week           = floor_date(published_date, "week", week_start = 1),
+    bert_net       = bert_positive - bert_negative,
+    english        = language == "en"
+  )
+coverage  <- read_csv(file.path(processed, "outlet_coverage.csv"), show_col_types = FALSE) |> fix_names()
+attrition <- read_csv(file.path(processed, "pipeline_attrition.csv"), show_col_types = FALSE) |> fix_names()
+
+# Minimum sample sizes used throughout
+MIN_OUTLET_N  <- 10    # articles per outlet for outlet-level charts
+MIN_COUNTRY_N <- 20    # articles per country for country-level charts
+MIN_WEEK_N    <- 5     # articles per week for weekly means
+
+country_n       <- count(scores, country)
+big_countries   <- country_n |> filter(n >= MIN_COUNTRY_N) |> pull(country)
+large_countries <- country_n |> filter(n >= 100) |> pull(country)
+english_sources <- c("USA", "UK", "Canada", "Israel", "Al Jazeera")
+
+n_outlets_final <- sum(coverage$final_articles > 0)
+n_outlets_zero  <- sum(coverage$gdelt_urls == 0)
+```
 
 ## Introduction
 
-This analysis examines how newspapers across **11 countries and regions** frame and
-report on the Iran–Israel conflict during the period **January 4 – April 4, 2026**.
+How do newspapers in different countries report the Iran–Israel conflict? This report
+compares the sentiment of `r comma(nrow(scores))` articles published between
+**4 January and 4 April 2026** by `r n_outlets_final` outlets in ten countries, plus Al Jazeera
+as a separate source. Sentiment is scored in each article's own language with a multilingual
+transformer model, without translation.
 
-We collected articles from 55 major outlets using the **GDELT Global Knowledge Graph**,
-extracted full text via web scraping, and ran multilingual sentiment analysis using
-**XLM-RoBERTa** — a transformer model trained on 100+ languages. This allows us to
-analyze Italian, Spanish, French, German, and Portuguese articles in their *native language*
-without losing linguistic nuance through translation.
+## Data and Method
 
-### Countries and outlets covered
+1. **Collection.** 51 outlets (five per country, one for Al Jazeera) were queried through the
+   [GDELT Doc 2.0 API](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/) for articles
+   containing all of *Iran*, *Israel*, *war* and *military*. The article date is the day GDELT
+   first saw the URL. `r n_outlets_zero` outlets returned no URLs (see the coverage table).
+2. **Scraping.** Full text extracted with `trafilatura`. Pages that could not be fetched
+   (bot protection, JavaScript walls) are dropped, not replaced by snippets.
+3. **Cleaning.** URLs from other sites that GDELT's domain filter lets through are removed
+   (for example `tagesspiegel.de` returned for `spiegel.de`). Consent banners, paywall notices
+   and page furniture are stripped. Articles must have at least 100 words, duplicates are
+   removed, and the detected language must match the outlet's language.
+4. **Sentiment.** [`cardiffnlp/xlm-roberta-base-sentiment-multilingual`](https://huggingface.co/cardiffnlp/xlm-roberta-base-sentiment-multilingual),
+   an XLM-RoBERTa model fine-tuned on multilingual tweets, gives each text a probability of
+   being negative, neutral and positive. Articles longer than 512 tokens are split into
+   510-token chunks with 50 tokens of overlap, and the chunk probabilities are averaged,
+   weighted by chunk length.
 
-| Region | Country | Language | Outlets |
-|--------|---------|----------|---------|
-| North America | USA | English | NYT, Washington Post, Fox News, CNN, WSJ |
-| North America | Canada | English | Globe and Mail, Toronto Star, National Post, CBC, CTV |
-| Europe | UK | English | The Guardian, BBC, The Times, Daily Mail, The Independent |
-| Europe | Italy | Italian | Corriere della Sera, La Repubblica, La Stampa, Il Sole 24 Ore, ANSA |
-| Europe | Spain | Spanish | El País, El Mundo, ABC, La Vanguardia, El Confidencial |
-| Europe | France | French | Le Monde, Le Figaro, Libération, Le Parisien, BFM TV |
-| Europe | Germany | German | Der Spiegel, Die Zeit, FAZ, Süddeutsche Zeitung, Bild |
-| South America | Brazil | Portuguese | Folha, O Globo, Estadão, UOL, Veja |
-| South America | Argentina | Spanish | La Nación, Clarín, Infobae, Página 12, Perfil |
-| Middle East | Al-Jazeera | English | aljazeera.com |
-| Middle East | Israel | English | Jerusalem Post, Haaretz, Times of Israel, Ynet, Israel National News |
+{{< include _01_overview.qmd >}}
 
-### Methodology
+{{< include _02_sentiment.qmd >}}
 
-1. **Data collection**: GDELT 2.0 GKG queried via Google BigQuery, filtered by source domain and Iran/Israel/War themes.
-2. **Article scraping**: Full text extracted with `trafilatura`; paywalled articles use available snippets.
-3. **Sentiment model**: `cardiffnlp/xlm-roberta-base-sentiment-multilingual` — 3-class classification (positive / neutral / negative). Long articles chunked into 510-token windows with 50-token overlap; probabilities aggregated by token-weighted average.
-4. **Validation**: BERT sentiment cross-validated against GDELT's built-in tone scores.
+{{< include _03_words.qmd >}}
 
----
-
-{{< include 01_overview.qmd >}}
-
----
-
-{{< include 02_sentiment.qmd >}}
-
----
-
-{{< include 03_words.qmd >}}
-
----
-
-{{< include 04_timeline.qmd >}}
-
----
+{{< include _04_timeline.qmd >}}
 
 ## Conclusions
 
-*[To be written after running the analysis — summarize key findings about sentiment differences across geographies, notable outliers, and temporal patterns.]*
+```{r conclusion-numbers, include=FALSE}
+pct <- function(x) percent(mean(x), accuracy = 1)
+mn  <- function(x) sub("^-", "−", sprintf("%.2f", x))
+by_c <- scores |> group_by(country) |> summarise(net = mean(bert_net), n = n(), .groups = "drop")
+net_of <- function(cn) mn(by_c$net[by_c$country == cn])
+weekly_n <- count(scores, week)
+before_peak <- weekly_n |> filter(week < as.Date("2026-02-16"), n >= MIN_WEEK_N) |> pull(n) |> mean()
+```
+
+### What the data show
+
+- **Coverage is overwhelmingly negative.** `r pct(scores$bert_sentiment == "negative")` of
+  articles are classified negative, `r pct(scores$bert_sentiment == "neutral")` neutral and
+  `r pct(scores$bert_sentiment == "positive")` positive. Mean net sentiment is
+  `r mn(mean(scores$bert_net))`, and no outlet is net positive in any week.
+- **Country differences exist but are small.** German (`r net_of("Germany")`) and Israeli
+  (`r net_of("Israel")`) coverage is the least negative; British, Al Jazeera and US coverage
+  the most (`r net_of("UK")` to `r net_of("USA")`). Countries differ less than single articles
+  do, and outlets within one country can differ as much as countries (ANSA and Corriere della
+  Sera in Italy).
+- **Israeli outlets are less negative than other English-language outlets**, by about 0.12.
+  This is the cleanest comparison in the report because the language is held fixed. Their
+  distinctive vocabulary is domestic: the IDF, normalization, the shekel.
+- **The escalation changed the volume more than the tone.** Coverage rose from about
+  `r round(before_peak)` articles a week in January and early February to
+  `r max(weekly_n$n)` in the week of 2 March. Weekly sentiment stayed within a narrow band,
+  slightly more negative in the busier weeks.
+
+### Comments
+
+- **The model measures tone, not position.** The classifier was trained on tweets labelled for
+  the writer's feeling. In war reporting, *negative* mostly records the subject (strikes,
+  casualties, threats), not an attitude towards Iran, Israel or the United States: a critical
+  and a sympathetic account of the same airstrike can both score strongly negative. Claims
+  about bias or framing would need a stance measure aimed at each actor.
+- **Comparisons across languages are fragile.** The model is not equally calibrated in every
+  language. German coverage is the least negative and the most neutral, and it is so for the
+  tabloid Bild as much as for Die Zeit and the Süddeutsche Zeitung. That pattern points to how
+  the model reads German more than to German editorial style. Comparisons within one language,
+  such as the English-language sources, are the ones to trust.
+- **The labels are soft.** Median confidence stays below 0.80 in every country. Class shares
+  are tendencies, and the net score, which uses the full probabilities, is the better summary.
+- **The sample is not a census.** Eleven outlets returned nothing, most likely because the
+  original collector swallowed rate-limit errors. The four-word query (*Iran*, *Israel*, *war*,
+  *military*) favours explicitly military stories, and the UK and Israel make up over half of
+  the articles. The results describe this sample, not each country's press as a whole.
+- **Next steps.** Hand-code a sample of articles in each language to measure the model's
+  accuracy before comparing countries. Measure stance towards named actors instead of overall
+  tone. Re-collect with the corrected collector and a fixed number of outlets per country.
+  Compare countries with article-level regressions that include outlet and week effects, so
+  that differences in timing and outlet mix are not read as national differences.
+
+### Revision note (November 2026)
+
+This version corrects the pipeline and the report. GDELT's domain filter had attributed
+articles from other papers (local London titles, Tagesspiegel, Unsere Zeit) to *The
+Independent*, *Der Spiegel*, *Die Zeit* and the *Daily Mail*. These are now removed, together
+with consent banners and page furniture in the article text, and the sample goes from 3,258
+to `r comma(nrow(scores))` articles. Country averages move by at most 0.01. Several charts
+were also fixed: a legend that labelled every bar "net positive", a "7-day" average computed
+over publication days rather than calendar days, unequal time axes, and rankings driven by
+outlets with one to six articles.
 
 ## Reproducibility
 
-All code is available at [github.com/andbbus/war-sentiment](https://github.com/andbbus/war-sentiment).
+Code: [github.com/andbbus/war-sentiment](https://github.com/andbbus/war-sentiment).
+Article text is not redistributed. The repository ships GDELT metadata and per-article
+scores, so every section except *Word Use* renders from the repository alone.
 
-To reproduce:
+The sentiment scores were recomputed on CPU for this revision. For the 2,308 articles whose
+cleaned text did not change, they match the original Apple-silicon run to within 0.00001
+(identical labels in every case).
 
 ```bash
-# 1. Install Python dependencies
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 2. Collect GDELT data (requires GOOGLE_APPLICATION_CREDENTIALS)
-python -m src.collect.gdelt_query
-
-# 3. Scrape full article text
-python -m src.collect.scraper
-
-# 4. Preprocess
-python -m src.preprocess.pipeline
-
-# 5. Run sentiment inference
-python -m src.sentiment.inference
-
-# 6. Validate and export summary
-python -m src.sentiment.export
-
-# 7. Render Quarto report
-quarto render analysis/report.qmd
+python -m src.collect.gdelt_query     # 1. GDELT metadata (sequential, ~1 request / 5.5 s)
+python -m src.collect.scraper         # 2. full text (not redistributed)
+python -m src.preprocess.pipeline     # 3. cleaning, deduplication, language check
+python -m src.sentiment.inference     # 4. sentiment scores
+python -m src.sentiment.export        # 5. text-free summaries and scores
+quarto render                         # 6. this report, written to docs/
 ```

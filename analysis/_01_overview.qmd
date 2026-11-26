@@ -1,0 +1,92 @@
+## Dataset
+
+### Outlet coverage
+
+```{r outlet-coverage}
+coverage |>
+  left_join(
+    scores |>
+      group_by(source_domain) |>
+      summarise(avg_words = round(mean(word_count)),
+                first = min(published_date), last = max(published_date), .groups = "drop"),
+    by = "source_domain"
+  ) |>
+  arrange(country, desc(final_articles)) |>
+  select(country, outlet_name, gdelt_urls, final_articles, avg_words, first, last) |>
+  kbl(
+    col.names = c("Country", "Outlet", "GDELT URLs", "Final articles", "Avg words",
+                  "First seen", "Last seen"),
+    caption = "All 51 queried outlets: URLs returned by GDELT (outlet's own site only) and articles in the final sample"
+  ) |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) |>
+  collapse_rows(columns = 1, valign = "top") |>
+  scroll_box(height = "420px")
+```
+
+`r n_outlets_zero` of the 51 outlets returned no URLs at all, among them the Washington Post,
+the Wall Street Journal and the Times of Israel. Zero matching articles in three months of
+this war is implausible for outlets of that size. The original collector treated rate-limited or failed GDELT
+requests as empty results; the corrected collector logs them, but this window was not
+re-collected. Le Monde returned 130 URLs, all of them JavaScript walls with no article text.
+
+### From GDELT hits to the final sample
+
+```{r attrition}
+attrition |>
+  mutate(kept = percent(language_ok / gdelt, accuracy = 1)) |>
+  arrange(desc(language_ok)) |>
+  kbl(
+    col.names = c("Country", "GDELT URLs", "Own site", "Scraped", "≥ 100 words",
+                  "Deduplicated", "Final", "Kept"),
+    caption = "Articles remaining after each pipeline step"
+  ) |>
+  kable_styling(bootstrap_options = c("striped", "condensed"))
+```
+
+The *own site* step removes `r sum(attrition$gdelt - attrition$right_site)` URLs that GDELT
+returned for the wrong outlet: its `domain:` filter matches suffixes, so local London papers
+came back as *The Independent* and Tagesspiegel as *Der Spiegel*, which is left with no articles.
+The other large losses are blocked pages (Canada, Le Monde), the same story under several
+URLs (CNN, Jerusalem Post) and pages in another language (CNN Arabic, El País in English).
+
+### Articles per country
+
+```{r country-bar, fig.height=4.5}
+scores |>
+  count(country) |>
+  left_join(coverage |> filter(final_articles > 0) |> count(country, name = "outlets"),
+            by = "country") |>
+  ggplot(aes(x = n, y = reorder(country, n))) +
+  geom_col(fill = "#4472C4") +
+  geom_text(aes(label = paste0(comma(n), "  (", outlets, " outlet", ifelse(outlets > 1, "s", ""), ")")),
+            hjust = -0.05, size = 3.6) +
+  scale_x_continuous(labels = comma, expand = expansion(mult = c(0, 0.25))) +
+  labs(title = "Articles per country in the final sample", x = "Articles", y = NULL) +
+  theme_minimal(base_size = 13)
+```
+
+The UK and Israel supply `r percent(mean(scores$country %in% c("UK", "Israel")), accuracy = 1)`
+of the sample, so pooled figures lean towards them. Canada rests on a single outlet, and
+Spain, Argentina and Brazil are too small for country-level conclusions; Brazil is left out
+of the country charts below (minimum `r MIN_COUNTRY_N` articles).
+
+### Weekly coverage
+
+```{r weekly, fig.height=4}
+scores |>
+  count(week) |>
+  ggplot(aes(x = week, y = n)) +
+  geom_col(fill = "#4472C4") +
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
+  scale_y_continuous(labels = comma) +
+  labs(title = "Articles per week, all sources",
+       subtitle = "Weeks start on Monday; date = day GDELT first saw the article",
+       x = NULL, y = "Articles") +
+  theme_minimal(base_size = 13)
+```
+
+Coverage is thin until mid-February, jumps in the week of 23 February and peaks in the week
+of 2 March (`r max(count(scores, week)$n)` articles), when English headlines are dominated by
+*strikes*, *Tehran* and *Lebanon*; from mid-March they add *oil*, *Gulf* and *Hormuz*.
+`r percent(mean(scores$published_date >= as.Date("2026-02-23")), accuracy = 1)` of the
+articles date from 23 February onwards, so the pooled results mostly describe that phase.

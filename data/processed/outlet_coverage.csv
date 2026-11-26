@@ -1,0 +1,52 @@
+country,outlet_name,source_domain,language,gdelt_urls,final_articles
+USA,New York Times,nytimes.com,en,6,6
+USA,Washington Post,washingtonpost.com,en,0,0
+USA,Fox News,foxnews.com,en,111,111
+USA,CNN,cnn.com,en,458,216
+USA,Wall Street Journal,wsj.com,en,0,0
+Canada,Globe and Mail,theglobeandmail.com,en,128,128
+Canada,Toronto Star,thestar.com,en,4,0
+Canada,National Post,nationalpost.com,en,61,0
+Canada,CBC News,cbc.ca,en,71,0
+Canada,CTV News,ctvnews.ca,en,0,0
+UK,The Guardian,theguardian.com,en,253,253
+UK,BBC News,bbc.co.uk,en,33,33
+UK,The Times,thetimes.co.uk,en,0,0
+UK,Daily Mail,dailymail.co.uk,en,369,368
+UK,The Independent,independent.co.uk,en,253,215
+Italy,Corriere della Sera,corriere.it,it,83,83
+Italy,La Repubblica,repubblica.it,it,34,28
+Italy,La Stampa,lastampa.it,it,51,34
+Italy,Il Sole 24 Ore,ilsole24ore.com,it,23,22
+Italy,ANSA,ansa.it,it,109,73
+Spain,El País,elpais.com,es,32,6
+Spain,El Mundo,elmundo.es,es,4,4
+Spain,ABC,abc.es,es,3,3
+Spain,La Vanguardia,lavanguardia.com,es,2,2
+Spain,El Confidencial,elconfidencial.com,es,9,9
+France,Le Monde,lemonde.fr,fr,130,0
+France,Le Figaro,lefigaro.fr,fr,2,2
+France,Libération,liberation.fr,fr,0,0
+France,Le Parisien,leparisien.fr,fr,104,104
+France,BFM TV,bfmtv.com,fr,160,156
+Germany,Der Spiegel,spiegel.de,de,10,0
+Germany,Die Zeit,zeit.de,de,51,49
+Germany,FAZ,faz.net,de,2,2
+Germany,Süddeutsche Zeitung,sueddeutsche.de,de,73,31
+Germany,Bild,bild.de,de,21,21
+Brazil,Folha de S.Paulo,folha.uol.com.br,pt,0,0
+Brazil,O Globo,oglobo.globo.com,pt,0,0
+Brazil,Estadão,estadao.com.br,pt,3,3
+Brazil,UOL,uol.com.br,pt,0,0
+Brazil,Veja,veja.abril.com.br,pt,1,1
+Argentina,La Nación,lanacion.com.ar,es,5,5
+Argentina,Clarín,clarin.com,es,11,11
+Argentina,Infobae,infobae.com,es,14,14
+Argentina,Página 12,pagina12.com.ar,es,0,0
+Argentina,Perfil,perfil.com,es,0,0
+AlJazeera,Al-Jazeera English,aljazeera.com,en,330,329
+Israel,Jerusalem Post,jpost.com,en,500,400
+Israel,Haaretz,haaretz.com,en,18,14
+Israel,Times of Israel,timesofisrael.com,en,0,0
+Israel,Ynet News,ynetnews.com,en,299,299
+Israel,Israel National News,israelnationalnews.com,en,104,103

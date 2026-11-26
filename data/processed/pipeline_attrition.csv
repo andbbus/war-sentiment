@@ -1,0 +1,12 @@
+country,gdelt,right_site,scraped,min_100_words,deduplicated,language_ok
+AlJazeera,330,330,329,329,329,329
+Argentina,30,30,30,30,30,30
+Brazil,4,4,4,4,4,4
+Canada,264,264,128,128,128,128
+France,396,396,392,262,262,262
+Germany,186,157,147,145,103,103
+Israel,921,921,920,916,816,816
+Italy,300,300,300,266,245,240
+Spain,50,50,50,50,50,24
+UK,1049,908,883,883,869,869
+USA,575,575,575,574,417,333

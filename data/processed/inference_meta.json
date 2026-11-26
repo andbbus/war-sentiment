@@ -1,0 +1,14 @@
+{
+  "model": "cardiffnlp/xlm-roberta-base-sentiment-multilingual",
+  "label_index": {
+    "negative": 0,
+    "neutral": 1,
+    "positive": 2
+  },
+  "device": "cpu",
+  "torch_threads": 16,
+  "torch": "2.15.0+cpu",
+  "transformers": "4.57.6",
+  "python": "3.12.3",
+  "started_utc": "2026-11-26T20:02:37+00:00"
+}

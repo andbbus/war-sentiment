@@ -1,0 +1,186 @@
+## Sentiment
+
+Net sentiment is the article's positive probability minus its negative probability, from
+−1 (certainly negative) to +1 (certainly positive).
+
+```{r sentiment-data, include=FALSE}
+country_avg <- scores |>
+  group_by(country) |>
+  summarise(
+    positive = mean(bert_positive),
+    neutral  = mean(bert_neutral),
+    negative = mean(bert_negative),
+    net      = mean(bert_net),
+    n        = n(),
+    .groups  = "drop"
+  ) |>
+  mutate(label = paste0(country, " (n=", comma(n), ")"))
+
+outlet_avg <- scores |>
+  group_by(country, outlet_name, english) |>
+  summarise(
+    net = mean(bert_net),
+    se  = sd(bert_net) / sqrt(n()),
+    n   = n(),
+    .groups = "drop"
+  )
+
+corpus_mean <- mean(scores$bert_net)
+
+# Numbers quoted in the notes
+f2 <- function(x) sprintf("%.2f", x)
+f2n <- function(x) sub("^-", "−", sprintf("%.2f", x))      # typographic minus
+ca <- country_avg |> filter(country %in% big_countries)
+de <- filter(country_avg, country == "Germany")
+eng <- filter(scores, english)
+isr_gap <- t.test(bert_net ~ (country == "Israel"), data = eng)
+conf_by <- scores |>
+  filter(country %in% big_countries) |>
+  mutate(confidence = pmax(bert_positive, bert_neutral, bert_negative)) |>
+  group_by(country) |>
+  summarise(med = median(confidence), above80 = mean(confidence >= 0.8), .groups = "drop")
+oa <- outlet_avg |> filter(n >= MIN_OUTLET_N)
+ansa <- filter(oa, outlet_name == "ANSA")$net
+corriere <- filter(oa, outlet_name == "Corriere della Sera")$net
+```
+
+### Average class probabilities by country
+
+```{r heatmap, fig.height=5, fig.width=8}
+country_avg |>
+  pivot_longer(c(positive, neutral, negative), names_to = "sentiment", values_to = "prob") |>
+  mutate(sentiment = factor(sentiment, levels = c("positive", "neutral", "negative"))) |>
+  ggplot(aes(x = sentiment, y = reorder(label, net), fill = prob)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = sprintf("%.2f", prob), color = prob > 0.55), size = 3.6,
+            show.legend = FALSE) +
+  scale_color_manual(values = c("TRUE" = "black", "FALSE" = "white")) +
+  scale_fill_viridis(option = "plasma", name = "Mean probability", limits = c(0, 1)) +
+  labs(title = "Mean sentiment probabilities by country",
+       subtitle = "Rows ordered by net sentiment, least negative at the top",
+       x = "Sentiment class", y = NULL) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom", legend.key.width = unit(2, "cm"))
+```
+
+The negative class dominates everywhere (mean probability between `r f2(min(ca$negative))`
+and `r f2(max(ca$negative))`), and the mean positive probability never exceeds
+`r f2(max(ca$positive))`. Germany is the exception: its mean neutral probability is
+`r f2(de$neutral)`, against `r f2(mean(scores$bert_neutral))` for the corpus as a whole.
+
+### Net sentiment by outlet
+
+```{r outlet-bars, fig.height=8, fig.width=10}
+outlet_avg |>
+  filter(n >= MIN_OUTLET_N) |>
+  mutate(
+    direction = ifelse(net > corpus_mean, "above corpus mean", "below corpus mean"),
+    outlet    = reorder(paste0(outlet_name, " (", n, ")"), net)
+  ) |>
+  ggplot(aes(x = net, y = outlet, fill = direction)) +
+  geom_col() +
+  geom_vline(xintercept = corpus_mean, linetype = "dashed", color = "grey40") +
+  facet_wrap(~country, scales = "free_y", ncol = 3) +
+  scale_fill_manual(values = c("above corpus mean" = "#2196F3", "below corpus mean" = "#F44336"),
+                    name = NULL) +
+  labs(
+    title = "Net sentiment by outlet",
+    subtitle = paste0("Outlets with at least ", MIN_OUTLET_N,
+                      " articles (n in brackets); dashed line = corpus mean"),
+    x = "Net sentiment", y = NULL
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "top")
+```
+
+Outlets in the same country can differ as much as countries do. In Italy, ANSA
+(`r f2n(ansa)`) and Corriere della Sera (`r f2n(corriere)`) sit near opposite ends of the
+full ranking, so a country average partly reflects which outlets happen to be in the sample.
+
+### Distribution of net sentiment
+
+```{r ridges, fig.height=7, fig.width=9, message=FALSE}
+scores |>
+  filter(country %in% big_countries) |>
+  left_join(select(country_avg, country, label), by = "country") |>
+  mutate(label = reorder(label, bert_net, FUN = mean)) |>
+  ggplot(aes(x = bert_net, y = label, fill = after_stat(x))) +
+  geom_density_ridges_gradient(scale = 2, rel_min_height = 0.01) +
+  scale_fill_viridis(option = "cividis", name = "Net sentiment") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "white", linewidth = 0.8) +
+  labs(
+    title = "Distribution of net sentiment by country",
+    subtitle = paste0("Countries with at least ", MIN_COUNTRY_N, " articles"),
+    x = "Net sentiment", y = NULL
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+The distributions overlap almost completely and sit below zero:
+`r percent(mean(scores$bert_net < 0), accuracy = 0.1)` of all articles have negative net
+sentiment. The gap between the least and most negative countries (`r f2(max(ca$net) - min(ca$net))`)
+is smaller than the spread of single articles (standard deviation `r f2(sd(scores$bert_net))`).
+
+### Outlets ranked by net sentiment
+
+```{r outlet-ranking, fig.height=8, fig.width=9}
+outlet_avg |>
+  filter(n >= MIN_OUTLET_N) |>
+  mutate(
+    label = reorder(paste0(outlet_name, " (", country, ", ", n, ")"), net),
+    group = ifelse(english, "English-language", "Other languages")
+  ) |>
+  ggplot(aes(x = net, y = label, color = group)) +
+  geom_vline(xintercept = corpus_mean, linetype = "dashed", color = "grey50") +
+  geom_errorbar(aes(xmin = net - 1.96 * se, xmax = net + 1.96 * se), width = 0) +
+  geom_point(size = 2.4) +
+  scale_color_manual(values = c("English-language" = "#1976D2", "Other languages" = "#E65100"),
+                     name = NULL) +
+  labs(
+    title = "Outlets ranked by mean net sentiment",
+    subtitle = paste0("Mean with 95% confidence interval; outlets with at least ",
+                      MIN_OUTLET_N, " articles; dashed line = corpus mean"),
+    x = "Net sentiment", y = NULL
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "top")
+```
+
+German and Israeli outlets are the least negative; the BBC, the Guardian, Fox News, the Daily
+Mail, Al Jazeera and Corriere della Sera the most. With these sample sizes only gaps of about
+0.1 or more are clearly distinguishable. Among English-language sources, Israeli outlets are
+less negative than the others by `r f2(abs(diff(isr_gap$estimate)))` (95% CI
+`r f2(min(abs(isr_gap$conf.int)))` to `r f2(max(abs(isr_gap$conf.int)))`).
+
+### Model confidence
+
+GDELT tone scores are not available through the Doc API, so the model cannot be checked
+against them. As a weaker check, the chart shows the model's **confidence**: the probability
+it gives to the class it picks. With three classes the minimum is 1/3.
+
+```{r confidence, fig.height=6, fig.width=9, message=FALSE}
+scores |>
+  filter(country %in% big_countries) |>
+  mutate(
+    confidence = pmax(bert_positive, bert_neutral, bert_negative),
+    country    = reorder(country, confidence, FUN = median)
+  ) |>
+  ggplot(aes(x = confidence, y = country, fill = after_stat(x))) +
+  geom_density_ridges_gradient(scale = 1.8, rel_min_height = 0.01,
+                               quantile_lines = TRUE, quantiles = 2) +
+  scale_fill_viridis(option = "magma", name = "Confidence", direction = -1) +
+  scale_x_continuous(labels = percent_format(accuracy = 1), limits = c(1/3, 1)) +
+  geom_vline(xintercept = 0.8, linetype = "dashed", color = "white", linewidth = 0.6) +
+  labs(
+    title = "Model confidence by country",
+    subtitle = "Black line = median; dashed line = 0.80",
+    x = "Probability of the predicted class", y = NULL
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+Median confidence runs from `r f2(min(conf_by$med))` to `r f2(max(conf_by$med))`: below 0.80
+in every country, and only `r percent(min(conf_by$above80), accuracy = 1)` to
+`r percent(max(conf_by$above80), accuracy = 1)` of articles per country pass that mark. The
+model often hesitates between *negative* and *neutral* on long news texts, so the class
+shares in this report are better read as tendencies than as clean labels.

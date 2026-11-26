@@ -4,9 +4,11 @@ Article scraper: fetches full text from URLs in data/raw/gdelt_articles.parquet.
 Uses trafilatura for robust text extraction. Implements:
 - Domain-randomized request order (avoids hammering one outlet)
 - Per-domain rate limiting (~2 req/sec)
-- Exponential backoff via tenacity
+- Retries with exponential backoff via tenacity (trafilatura returns None on
+  failure instead of raising, so the retry is on a None result)
 - Checkpointing every 100 articles (safe to restart)
-- Language detection with langdetect
+- Language detection with langdetect, seeded so reruns give the same labels
+- Title from the page metadata, with GDELT's title kept as `gdelt_title`
 
 Usage:
     python -m src.collect.scraper [--limit N] [--workers N]
@@ -15,7 +17,6 @@ Output:
     data/scraped/articles_text.parquet
 """
 
-import hashlib
 import random
 import time
 from collections import defaultdict
@@ -27,7 +28,8 @@ import tenacity
 import trafilatura
 from tqdm import tqdm
 
-from src.collect.config import domain_to_language
+# langdetect is non-deterministic unless seeded
+langdetect.DetectorFactory.seed = 0
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -50,8 +52,9 @@ PER_DOMAIN_DELAY = 0.5     # Seconds between requests to the same domain
 @tenacity.retry(
     wait=tenacity.wait_exponential(multiplier=1, min=2, max=30),
     stop=tenacity.stop_after_attempt(3),
-    retry=tenacity.retry_if_exception_type((Exception,)),
-    reraise=False,
+    retry=(tenacity.retry_if_exception_type(Exception)
+           | tenacity.retry_if_result(lambda html: html is None)),
+    retry_error_callback=lambda state: None,   # give up quietly: caller marks "empty"
 )
 def _fetch_with_retry(url: str) -> str | None:
     """Fetch raw HTML from a URL with retries. Returns HTML string or None."""
@@ -86,12 +89,9 @@ def scrape_url(url: str) -> dict:
         include_tables=False,
         no_fallback=False,
     )
-    title = trafilatura.extract(html, output_format="xml")
-    # Try to parse title from XML metadata
-    if title:
-        import re
-        m = re.search(r"<title>(.*?)</title>", title)
-        result["title"] = m.group(1).strip() if m else None
+    meta = trafilatura.extract_metadata(html)
+    if meta is not None and meta.title:
+        result["title"] = meta.title.strip()
 
     if not text:
         result["scrape_status"] = "empty"
@@ -209,6 +209,7 @@ def main(limit: int | None = None):
             "outlet_name": row["outlet_name"],
             "country": row["country"],
             "language": row["language"],
+            "gdelt_title": row.get("title"),
             "gdelt_tone": row.get("gdelt_tone"),
             "themes": row.get("themes"),
             **scraped,

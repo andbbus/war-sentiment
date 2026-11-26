@@ -2,7 +2,7 @@
 Multilingual sentiment model wrapper using XLM-RoBERTa.
 
 Model: cardiffnlp/xlm-roberta-base-sentiment-multilingual
-Labels: negative (0), neutral (1), positive (2)
+Labels: read from the model config (id2label), never assumed by position.
 
 Key feature: chunking strategy for articles exceeding 512 tokens.
 Articles are split into 510-token chunks with 50-token overlap;
@@ -17,8 +17,15 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 MODEL_NAME = "cardiffnlp/xlm-roberta-base-sentiment-multilingual"
 
-# Fallback if the above is unavailable
+# Optional fallback, used only when explicitly allowed: a different model is a
+# different measuring instrument, so its scores are not comparable.
 FALLBACK_MODEL_NAME = "lxyuan/distilbert-base-multilingual-cased-sentiments-student"
+
+_LABEL_ALIASES = {
+    "negative": "negative", "neg": "negative",
+    "neutral": "neutral", "neu": "neutral",
+    "positive": "positive", "pos": "positive",
+}
 
 CHUNK_SIZE = 510      # Tokens per chunk (leaves room for [CLS] and [SEP])
 CHUNK_OVERLAP = 50    # Token overlap between adjacent chunks
@@ -39,7 +46,8 @@ class SentimentModel:
     Handles tokenization, chunking, batched inference, and result aggregation.
     """
 
-    def __init__(self, model_name: str = MODEL_NAME, device: torch.device | None = None):
+    def __init__(self, model_name: str = MODEL_NAME, device: torch.device | None = None,
+                 allow_fallback: bool = False):
         self.model_name = model_name
         self.device = device or get_device()
         print(f"Loading model: {model_name}")
@@ -49,8 +57,10 @@ class SentimentModel:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
         except Exception as e:
+            if not allow_fallback:
+                raise
             print(f"Failed to load {model_name}: {e}")
-            print(f"Falling back to {FALLBACK_MODEL_NAME}")
+            print(f"Falling back to {FALLBACK_MODEL_NAME} (scores not comparable with {MODEL_NAME})")
             self.model_name = FALLBACK_MODEL_NAME
             self.tokenizer = AutoTokenizer.from_pretrained(FALLBACK_MODEL_NAME)
             self.model = AutoModelForSequenceClassification.from_pretrained(FALLBACK_MODEL_NAME)
@@ -58,8 +68,12 @@ class SentimentModel:
         self.model.to(self.device)
         self.model.eval()
 
-        # Confirm label mapping: we assume neg=0, neu=1, pos=2
+        # Column index of each class, from the model's own label names
         id2label = self.model.config.id2label
+        self.label_index = {_LABEL_ALIASES.get(str(lbl).lower(), str(lbl).lower()): int(i)
+                            for i, lbl in id2label.items()}
+        if set(self.label_index) != {"negative", "neutral", "positive"}:
+            raise ValueError(f"Unexpected label set {id2label}; expected negative/neutral/positive")
         print(f"Label mapping: {id2label}")
 
     def _tokenize_chunk(self, text: str) -> list[dict]:
@@ -131,7 +145,7 @@ class SentimentModel:
             {"negative": float, "neutral": float, "positive": float, "label": str}
         """
         total_tokens = sum(c["token_count"] for c in chunks)
-        weighted_probs = torch.zeros(3)  # [neg, neu, pos]
+        weighted_probs = torch.zeros(self.model.config.num_labels)  # in id2label order
 
         for chunk in chunks:
             input_ids = chunk["input_ids"].to(self.device)
@@ -142,23 +156,12 @@ class SentimentModel:
             weight = chunk["token_count"] / total_tokens
             weighted_probs += weight * probs
 
-        label_idx = int(weighted_probs.argmax().item())
-        id2label = self.model.config.id2label
-        label = id2label[label_idx].lower()
-
-        # Normalize label names to negative/neutral/positive
-        label_map = {
-            "negative": "negative", "neg": "negative",
-            "neutral": "neutral", "neu": "neutral",
-            "positive": "positive", "pos": "positive",
-        }
-        label = label_map.get(label, label)
-
+        probs = {name: float(weighted_probs[i]) for name, i in self.label_index.items()}
         return {
-            "bert_negative": float(weighted_probs[0]),
-            "bert_neutral":  float(weighted_probs[1]),
-            "bert_positive": float(weighted_probs[2]),
-            "bert_sentiment": label,
+            "bert_negative": probs["negative"],
+            "bert_neutral":  probs["neutral"],
+            "bert_positive": probs["positive"],
+            "bert_sentiment": max(probs, key=probs.get),
         }
 
     def predict(self, texts: list[str]) -> list[dict]:

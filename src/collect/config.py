@@ -1,20 +1,16 @@
 """
 Central configuration for war-sentiment data collection.
-All outlet domains, languages, date range, and search keywords live here.
+All outlet domains, languages and the date range live here.
 Every other module imports from this file.
 """
+
+from urllib.parse import urlparse
 
 # ---------------------------------------------------------------------------
 # Date range: last 3 months as of April 4, 2026
 # ---------------------------------------------------------------------------
 DATE_START = "2026-01-04"
-DATE_END = "2026-04-04"
-DATE_RANGE = (DATE_START, DATE_END)
-
-# ---------------------------------------------------------------------------
-# GDELT theme keywords used to filter articles (matched against V2Themes)
-# ---------------------------------------------------------------------------
-GDELT_THEME_KEYWORDS = ["IRAN", "ISRAEL", "MILITARY", "WAR"]
+DATE_END = "2026-04-04"   # inclusive
 
 # ---------------------------------------------------------------------------
 # Outlet registry
@@ -145,18 +141,24 @@ def get_all_domains() -> list[str]:
     return ALL_DOMAINS
 
 
-def build_domain_regex() -> str:
+def domain_for_url(url: str) -> str | None:
     """
-    Build a regex pattern matching any registered domain in a URL.
-    Escapes dots; used in GDELT BigQuery REGEXP_CONTAINS queries.
-    Example output: '(nytimes\\.com|washingtonpost\\.com|...)'
+    Return the registered domain that a URL belongs to, or None.
+
+    The URL host must equal the domain or be a subdomain of it, and the most
+    specific registered domain wins (folha.uol.com.br over uol.com.br).
+    GDELT's `domain:` operator matches suffixes, so `domain:spiegel.de` also
+    returns tagesspiegel.de and `domain:independent.co.uk` returns
+    enfieldindependent.co.uk; this check rejects those.
     """
-    escaped = [d.replace(".", "\\.") for d in ALL_DOMAINS]
-    return "(" + "|".join(escaped) + ")"
+    host = urlparse(url).netloc.lower().split(":")[0]
+    if host.startswith("www."):
+        host = host[4:]
+    matches = [d for d in ALL_DOMAINS if host == d or host.endswith("." + d)]
+    return max(matches, key=len) if matches else None
 
 
 if __name__ == "__main__":
     print(f"Total outlets: {len(ALL_DOMAINS)}")
     for country, entries in OUTLETS.items():
         print(f"  {country}: {[name for name, _, _ in entries]}")
-    print(f"\nDomain regex (truncated): {build_domain_regex()[:120]}...")

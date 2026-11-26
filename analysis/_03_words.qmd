@@ -1,0 +1,147 @@
+## Word Use
+
+```{r words-setup, include=FALSE}
+text_path <- "../data/processed/articles_with_sentiment.parquet"
+has_text  <- file.exists(text_path)
+```
+
+```{r words-missing, echo=FALSE, results="asis", eval=!has_text}
+cat("> This section needs the article text, which is not distributed with the repository.",
+    "Run the pipeline (steps 2–5 in the README) to rebuild it.\n")
+```
+
+```{r tokens, include=FALSE, eval=has_text}
+library(tidytext)
+library(ggwordcloud)
+library(stopwords)
+
+texts <- read_parquet(text_path, col_select = c(article_id, country, language, full_text)) |>
+  fix_names() |>
+  filter(country %in% big_countries)
+
+# Stopwords: the stopwords-iso lists (larger than snowball, which e.g. lacks "said" and
+# still spells German "daß"), plus reporting verbs and fillers common in news copy.
+extra_stopwords <- list(
+  en = c("said", "says", "say", "told", "also", "can", "will", "would", "according",
+         "mr", "just", "like", "including", "us", "one", "two", "new", "cent",
+         # outlet self-references and page furniture ("list of 4 items", photo captions)
+         "cnn", "fox", "jazeera", "mail", "pictured", "items"),
+  it = c("ha", "detto", "secondo", "anche", "dopo", "stato", "stati", "essere"),
+  es = c("dijo", "según", "afirmó", "además", "tras"),
+  fr = c("selon", "déclaré", "après", "a", "été"),
+  de = c("sagte", "sei", "seien", "worden", "dass", "sagt", "dpa", "infocom"),
+  pt = c("disse", "segundo", "após")
+)
+all_stopwords <- map_dfr(names(extra_stopwords), function(lang) {
+  tibble(word = unique(c(stopwords(lang, source = "stopwords-iso"), extra_stopwords[[lang]])),
+         language = lang)
+})
+
+# Normalise tokens: French/Italian elisions ("l'iran", "dell'iran"), English possessives
+# ("israel's") and list numbering glued to a word ("3iran") are reduced to the bare word
+strip_elision <- function(w) {
+  w |>
+    str_remove("^(l|d|qu|n|s|c|j|m|t|all|dell|nell|sull|dall|un)['’]") |>
+    str_remove("['’]s$") |>
+    str_remove("^\\d+(?=[[:alpha:]])")
+}
+
+tokens_clean <- texts |>
+  unnest_tokens(word, full_text) |>
+  mutate(word = strip_elision(word)) |>
+  filter(!str_detect(word, "^\\d+$"), nchar(word) > 2) |>
+  anti_join(all_stopwords, by = c("word", "language"))
+```
+
+### Most frequent words per country
+
+```{r wordclouds, fig.height=13, fig.width=14, eval=has_text}
+tokens_clean |>
+  count(country, word, sort = TRUE) |>
+  group_by(country) |>
+  slice_max(n, n = 60, with_ties = FALSE) |>
+  mutate(rel = n / max(n)) |>          # size relative to each country's top word,
+  ungroup() |>                         # so small countries stay readable
+  ggplot(aes(label = word, size = rel, color = rel)) +
+  geom_text_wordcloud(rm_outside = TRUE, seed = 42) +
+  scale_size_area(max_size = 10) +
+  scale_color_viridis_c(option = "plasma", end = 0.85) +
+  facet_wrap(~country, ncol = 3) +
+  theme_minimal(base_size = 12) +
+  theme(strip.text = element_text(face = "bold", size = 13)) +
+  labs(title = "Most frequent words per country (original language, stopwords removed)",
+       subtitle = "Word size relative to each country's most frequent word")
+```
+
+Every country's coverage is organised around the same actors: Iran, Israel, Trump and the
+United States, then the military vocabulary of strikes, missiles and forces. The clouds show
+*who* is covered, which is much the same everywhere, not *how*.
+
+### Distinctive words among English-language sources (TF-IDF)
+
+```{r tfidf, fig.height=8, fig.width=12, eval=has_text}
+tokens_clean |>
+  filter(country %in% english_sources) |>
+  add_count(country, word, name = "n") |>
+  group_by(country, word) |>
+  filter(n_distinct(article_id) >= 5) |>    # ignore names that appear in one or two articles
+  summarise(n = first(n), .groups = "drop") |>
+  bind_tf_idf(word, country, n) |>
+  group_by(country) |>
+  slice_max(tf_idf, n = 12, with_ties = FALSE) |>
+  ungroup() |>
+  mutate(word = reorder_within(word, tf_idf, country)) |>
+  ggplot(aes(x = tf_idf, y = word, fill = country)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~country, scales = "free", ncol = 3) +
+  scale_y_reordered() +
+  scale_fill_viridis_d(option = "turbo") +
+  labs(
+    title = "Most distinctive words per source, English-language sources only (TF-IDF)",
+    subtitle = "Each source compared with the other four; words used by all five score zero; words in at least 5 articles",
+    x = "TF-IDF", y = NULL
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(strip.text = element_text(face = "bold"))
+```
+
+Restricting the comparison to English-language sources removes the language effect, which
+otherwise dominates TF-IDF. What remains is mostly each source's home angle: Canadian
+politics and markets (Carney, Poilievre, the TSX), British defence (RAF, Akrotiri, HMS),
+US domestic politics (GOP, senators, the FBI), Israeli security and diplomacy (IDF,
+normalization, the shekel as *NIS*). Spelling conventions (*defence*, *programme*) also
+register. Al Jazeera is the only source with *genocide* and *genocidal* among its
+distinctive words.
+
+### Most common two-word phrases
+
+```{r bigrams, fig.height=12, fig.width=12, eval=has_text}
+texts |>
+  unnest_tokens(bigram, full_text, token = "ngrams", n = 2) |>
+  filter(!is.na(bigram)) |>
+  separate(bigram, into = c("word1", "word2"), sep = " ") |>
+  mutate(word1 = strip_elision(word1), word2 = strip_elision(word2)) |>
+  anti_join(all_stopwords, by = c("word1" = "word", "language")) |>
+  anti_join(all_stopwords, by = c("word2" = "word", "language")) |>
+  filter(nchar(word1) > 2, nchar(word2) > 2,
+         !str_detect(word1, "^\\d+$"), !str_detect(word2, "^\\d+$")) |>
+  unite(bigram, word1, word2, sep = " ") |>
+  count(country, bigram, sort = TRUE) |>
+  group_by(country) |>
+  slice_max(n, n = 10, with_ties = FALSE) |>
+  ungroup() |>
+  mutate(bigram = reorder_within(bigram, n, country)) |>
+  ggplot(aes(x = n, y = bigram, fill = country)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~country, scales = "free", ncol = 3) +
+  scale_y_reordered() +
+  scale_fill_viridis_d(option = "turbo") +
+  labs(title = "Most common two-word phrases per country", x = "Count", y = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(strip.text = element_text(face = "bold"))
+```
+
+*Donald Trump* is among the top three phrases in every country, Iran's *supreme leader* or
+the *Islamic Republic* appear everywhere, and *Middle East* leads in most. The phrases are
+names of people, places and institutions; few carry any evaluation, which is one reason word
+counts alone say little about tone.
