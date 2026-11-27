@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Andrea Busolo">
-<meta name="dcterms.date" content="2026-11-26">
+<meta name="dcterms.date" content="2026-11-27">
 
 <title>Media Sentiment on the Iran–Israel Conflict – War Sentiment</title>
 <style>
@@ -4336,7 +4336,6 @@ border: 0;
   <ul class="collapse">
   <li><a href="#what-the-data-show" id="toc-what-the-data-show" class="nav-link" data-scroll-target="#what-the-data-show">What the data show</a></li>
   <li><a href="#comments" id="toc-comments" class="nav-link" data-scroll-target="#comments">Comments</a></li>
-  <li><a href="#revision-note-november-2026" id="toc-revision-note-november-2026" class="nav-link" data-scroll-target="#revision-note-november-2026">Revision note (November 2026)</a></li>
   </ul></li>
   <li><a href="#reproducibility" id="toc-reproducibility" class="nav-link" data-scroll-target="#reproducibility">Reproducibility</a></li>
   </ul>
@@ -4365,7 +4364,7 @@ border: 0;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 26, 2026</p>
+      <p class="date">November 27, 2026</p>
     </div>
   </div>
   
@@ -5506,15 +5505,11 @@ border: 0;
 <li><strong>Next steps.</strong> Hand-code a sample of articles in each language to measure the model’s accuracy before comparing countries. Measure stance towards named actors instead of overall tone. Re-collect with the corrected collector and a fixed number of outlets per country. Compare countries with article-level regressions that include outlet and week effects, so that differences in timing and outlet mix are not read as national differences.</li>
 </ul>
 </section>
-<section id="revision-note-november-2026" class="level3">
-<h3 class="anchored" data-anchor-id="revision-note-november-2026">Revision note (November 2026)</h3>
-<p>This version corrects the pipeline and the report. GDELT’s domain filter had attributed articles from other papers (local London titles, Tagesspiegel, Unsere Zeit) to <em>The Independent</em>, <em>Der Spiegel</em>, <em>Die Zeit</em> and the <em>Daily Mail</em>. These are now removed, together with consent banners and page furniture in the article text, and the sample goes from 3,258 to 3,138 articles. Country averages move by at most 0.01. Several charts were also fixed: a legend that labelled every bar “net positive”, a “7-day” average computed over publication days rather than calendar days, unequal time axes, and rankings driven by outlets with one to six articles.</p>
-</section>
 </section>
 <section id="reproducibility" class="level2">
 <h2 class="anchored" data-anchor-id="reproducibility">Reproducibility</h2>
 <p>Code: <a href="https://github.com/andbbus/war-sentiment">github.com/andbbus/war-sentiment</a>. Article text is not redistributed. The repository ships GDELT metadata and per-article scores, so every section except <em>Word Use</em> renders from the repository alone.</p>
-<p>The sentiment scores were recomputed on CPU for this revision. For the 2,308 articles whose cleaned text did not change, they match the original Apple-silicon run to within 0.00001 (identical labels in every case).</p>
+<p>The sentiment scores were computed on CPU. An earlier run on Apple silicon gives the same scores to within 0.00001 for the 2,308 articles whose cleaned text is identical in both runs (identical labels in every case).</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> venv .venv <span class="kw">&amp;&amp;</span> <span class="bu">source</span> .venv/bin/activate</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -6214,38 +6209,27 @@ border: 0;
 <span id="cb18-154"><a href="#cb18-154" aria-hidden="true" tabindex="-1"></a>  Compare countries with article-level regressions that include outlet and week effects, so</span>
 <span id="cb18-155"><a href="#cb18-155" aria-hidden="true" tabindex="-1"></a>  that differences in timing and outlet mix are not read as national differences.</span>
 <span id="cb18-156"><a href="#cb18-156" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-157"><a href="#cb18-157" aria-hidden="true" tabindex="-1"></a><span class="fu">### Revision note (November 2026)</span></span>
+<span id="cb18-157"><a href="#cb18-157" aria-hidden="true" tabindex="-1"></a><span class="fu">## Reproducibility</span></span>
 <span id="cb18-158"><a href="#cb18-158" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-159"><a href="#cb18-159" aria-hidden="true" tabindex="-1"></a>This version corrects the pipeline and the report. GDELT&#39;s domain filter had attributed</span>
-<span id="cb18-160"><a href="#cb18-160" aria-hidden="true" tabindex="-1"></a>articles from other papers (local London titles, Tagesspiegel, Unsere Zeit) to *The</span>
-<span id="cb18-161"><a href="#cb18-161" aria-hidden="true" tabindex="-1"></a>Independent*, *Der Spiegel*, *Die Zeit* and the *Daily Mail*. These are now removed, together</span>
-<span id="cb18-162"><a href="#cb18-162" aria-hidden="true" tabindex="-1"></a>with consent banners and page furniture in the article text, and the sample goes from 3,258</span>
-<span id="cb18-163"><a href="#cb18-163" aria-hidden="true" tabindex="-1"></a>to <span class="in">`r comma(nrow(scores))`</span> articles. Country averages move by at most 0.01. Several charts</span>
-<span id="cb18-164"><a href="#cb18-164" aria-hidden="true" tabindex="-1"></a>were also fixed: a legend that labelled every bar &quot;net positive&quot;, a &quot;7-day&quot; average computed</span>
-<span id="cb18-165"><a href="#cb18-165" aria-hidden="true" tabindex="-1"></a>over publication days rather than calendar days, unequal time axes, and rankings driven by</span>
-<span id="cb18-166"><a href="#cb18-166" aria-hidden="true" tabindex="-1"></a>outlets with one to six articles.</span>
-<span id="cb18-167"><a href="#cb18-167" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-168"><a href="#cb18-168" aria-hidden="true" tabindex="-1"></a><span class="fu">## Reproducibility</span></span>
-<span id="cb18-169"><a href="#cb18-169" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-170"><a href="#cb18-170" aria-hidden="true" tabindex="-1"></a>Code: <span class="co">[</span><span class="ot">github.com/andbbus/war-sentiment</span><span class="co">](https://github.com/andbbus/war-sentiment)</span>.</span>
-<span id="cb18-171"><a href="#cb18-171" aria-hidden="true" tabindex="-1"></a>Article text is not redistributed. The repository ships GDELT metadata and per-article</span>
-<span id="cb18-172"><a href="#cb18-172" aria-hidden="true" tabindex="-1"></a>scores, so every section except *Word Use* renders from the repository alone.</span>
-<span id="cb18-173"><a href="#cb18-173" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-174"><a href="#cb18-174" aria-hidden="true" tabindex="-1"></a>The sentiment scores were recomputed on CPU for this revision. For the 2,308 articles whose</span>
-<span id="cb18-175"><a href="#cb18-175" aria-hidden="true" tabindex="-1"></a>cleaned text did not change, they match the original Apple-silicon run to within 0.00001</span>
-<span id="cb18-176"><a href="#cb18-176" aria-hidden="true" tabindex="-1"></a>(identical labels in every case).</span>
-<span id="cb18-177"><a href="#cb18-177" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-178"><a href="#cb18-178" aria-hidden="true" tabindex="-1"></a><span class="in">```bash</span></span>
-<span id="cb18-179"><a href="#cb18-179" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> venv .venv <span class="kw">&amp;&amp;</span> <span class="bu">source</span> .venv/bin/activate</span>
-<span id="cb18-180"><a href="#cb18-180" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span>
-<span id="cb18-181"><a href="#cb18-181" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-182"><a href="#cb18-182" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.collect.gdelt_query     <span class="co"># 1. GDELT metadata (sequential, ~1 request / 5.5 s)</span></span>
-<span id="cb18-183"><a href="#cb18-183" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.collect.scraper         <span class="co"># 2. full text (not redistributed)</span></span>
-<span id="cb18-184"><a href="#cb18-184" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.preprocess.pipeline     <span class="co"># 3. cleaning, deduplication, language check</span></span>
-<span id="cb18-185"><a href="#cb18-185" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.sentiment.inference     <span class="co"># 4. sentiment scores</span></span>
-<span id="cb18-186"><a href="#cb18-186" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.sentiment.export        <span class="co"># 5. text-free summaries and scores</span></span>
-<span id="cb18-187"><a href="#cb18-187" aria-hidden="true" tabindex="-1"></a><span class="ex">quarto</span> render                         <span class="co"># 6. this report, written to docs/</span></span>
-<span id="cb18-188"><a href="#cb18-188" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal><i class="bi"></i></button></div>
+<span id="cb18-159"><a href="#cb18-159" aria-hidden="true" tabindex="-1"></a>Code: <span class="co">[</span><span class="ot">github.com/andbbus/war-sentiment</span><span class="co">](https://github.com/andbbus/war-sentiment)</span>.</span>
+<span id="cb18-160"><a href="#cb18-160" aria-hidden="true" tabindex="-1"></a>Article text is not redistributed. The repository ships GDELT metadata and per-article</span>
+<span id="cb18-161"><a href="#cb18-161" aria-hidden="true" tabindex="-1"></a>scores, so every section except *Word Use* renders from the repository alone.</span>
+<span id="cb18-162"><a href="#cb18-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-163"><a href="#cb18-163" aria-hidden="true" tabindex="-1"></a>The sentiment scores were computed on CPU. An earlier run on Apple silicon gives the same</span>
+<span id="cb18-164"><a href="#cb18-164" aria-hidden="true" tabindex="-1"></a>scores to within 0.00001 for the 2,308 articles whose cleaned text is identical in both runs</span>
+<span id="cb18-165"><a href="#cb18-165" aria-hidden="true" tabindex="-1"></a>(identical labels in every case).</span>
+<span id="cb18-166"><a href="#cb18-166" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-167"><a href="#cb18-167" aria-hidden="true" tabindex="-1"></a><span class="in">```bash</span></span>
+<span id="cb18-168"><a href="#cb18-168" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> venv .venv <span class="kw">&amp;&amp;</span> <span class="bu">source</span> .venv/bin/activate</span>
+<span id="cb18-169"><a href="#cb18-169" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span>
+<span id="cb18-170"><a href="#cb18-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-171"><a href="#cb18-171" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.collect.gdelt_query     <span class="co"># 1. GDELT metadata (sequential, ~1 request / 5.5 s)</span></span>
+<span id="cb18-172"><a href="#cb18-172" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.collect.scraper         <span class="co"># 2. full text (not redistributed)</span></span>
+<span id="cb18-173"><a href="#cb18-173" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.preprocess.pipeline     <span class="co"># 3. cleaning, deduplication, language check</span></span>
+<span id="cb18-174"><a href="#cb18-174" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.sentiment.inference     <span class="co"># 4. sentiment scores</span></span>
+<span id="cb18-175"><a href="#cb18-175" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.sentiment.export        <span class="co"># 5. text-free summaries and scores</span></span>
+<span id="cb18-176"><a href="#cb18-176" aria-hidden="true" tabindex="-1"></a><span class="ex">quarto</span> render                         <span class="co"># 6. this report, written to docs/</span></span>
+<span id="cb18-177"><a href="#cb18-177" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 

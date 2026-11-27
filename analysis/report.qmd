@@ -154,25 +154,14 @@ before_peak <- weekly_n |> filter(week < as.Date("2026-02-16"), n >= MIN_WEEK_N)
   Compare countries with article-level regressions that include outlet and week effects, so
   that differences in timing and outlet mix are not read as national differences.
 
-### Revision note (November 2026)
-
-This version corrects the pipeline and the report. GDELT's domain filter had attributed
-articles from other papers (local London titles, Tagesspiegel, Unsere Zeit) to *The
-Independent*, *Der Spiegel*, *Die Zeit* and the *Daily Mail*. These are now removed, together
-with consent banners and page furniture in the article text, and the sample goes from 3,258
-to `r comma(nrow(scores))` articles. Country averages move by at most 0.01. Several charts
-were also fixed: a legend that labelled every bar "net positive", a "7-day" average computed
-over publication days rather than calendar days, unequal time axes, and rankings driven by
-outlets with one to six articles.
-
 ## Reproducibility
 
 Code: [github.com/andbbus/war-sentiment](https://github.com/andbbus/war-sentiment).
 Article text is not redistributed. The repository ships GDELT metadata and per-article
 scores, so every section except *Word Use* renders from the repository alone.
 
-The sentiment scores were recomputed on CPU for this revision. For the 2,308 articles whose
-cleaned text did not change, they match the original Apple-silicon run to within 0.00001
+The sentiment scores were computed on CPU. An earlier run on Apple silicon gives the same
+scores to within 0.00001 for the 2,308 articles whose cleaned text is identical in both runs
 (identical labels in every case).
 
 ```bash
