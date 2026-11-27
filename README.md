@@ -158,13 +158,13 @@ war-sentiment/
 
 ## Notes on data quality
 
-- **11 outlets returned no URLs**, among them the Washington Post, the WSJ and the Times of Israel. The original collector treated rate-limited GDELT requests as empty results; the corrected collector logs failures, but this window was not re-collected.
-- **Wrong-site URLs (fixed November 2026):** GDELT's `domain:` operator matches suffixes, so 170 URLs from other papers (Tottenham and Enfield Independent, Tagesspiegel, Unsere Zeit, Hull Daily Mail) had been attributed to The Independent, Der Spiegel, Die Zeit and the Daily Mail. They are now removed; Der Spiegel has no remaining articles. Country averages moved by at most 0.01.
+- **11 outlets returned no URLs**, among them the Washington Post, the WSJ and the Times of Israel. The likely cause is GDELT's rate limit: during collection, throttled requests were counted as empty results. The collector in this repository logs failed requests to `data/raw/gdelt_failures.csv`, so a new run shows which outlets are genuinely empty.
+- **Wrong-site URLs:** GDELT's `domain:` operator matches suffixes, so the queries for The Independent, Der Spiegel, Die Zeit and the Daily Mail also returned 170 URLs from other papers (Tottenham and Enfield Independent, Tagesspiegel, Unsere Zeit, Hull Daily Mail). The cleaning step removes them; Der Spiegel has no articles left.
 - **Canada** rests on one outlet (Globe and Mail): CBC, National Post and Toronto Star were blocked by anti-scraping protections and CTV returned no URLs. **Le Monde** pages were JavaScript walls with no text.
 - **Germany** shows unusually high neutral coverage (38% of articles), for the tabloid Bild as much as for Die Zeit and the Süddeutsche Zeitung. Part of this is genre (liveblogs and agency copy read as less negative everywhere); among German articles that are neither, a smaller gap remains, which suggests the model's handling of German rather than editorial style.
 - **Brazil, Spain and Argentina** have 4, 24 and 30 articles: indicative only.
 - Dates are GDELT's `seendate`, the day GDELT first saw the article.
-- GDELT tone scores are not available via the Doc API, so cross-validation against GDELT tone is not included. Re-scoring on CPU reproduced the original Apple-silicon scores to within 0.00001 for unchanged texts.
+- GDELT tone scores are not available via the Doc API, so cross-validation against GDELT tone is not included. Scores computed on CPU and on Apple silicon agree to within 0.00001.
 
 ## License
 

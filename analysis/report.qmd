@@ -144,13 +144,14 @@ before_peak <- weekly_n |> filter(week < as.Date("2026-02-16"), n >= MIN_WEEK_N)
   copy (ANSA in Italy is an example).
 - **The labels are soft.** Median confidence stays below 0.80 in every country. Class shares
   are tendencies, and the net score, which uses the full probabilities, is the better summary.
-- **The sample is not a census.** Eleven outlets returned nothing, most likely because the
-  original collector swallowed rate-limit errors. The four-word query (*Iran*, *Israel*, *war*,
+- **The sample is not a census.** Eleven outlets returned nothing, most likely because GDELT
+  throttled the requests and they were counted as empty. The four-word query (*Iran*, *Israel*, *war*,
   *military*) favours explicitly military stories, and the UK and Israel make up over half of
   the articles. The results describe this sample, not each country's press as a whole.
 - **Next steps.** Hand-code a sample of articles in each language to measure the model's
   accuracy before comparing countries. Measure stance towards named actors instead of overall
-  tone. Re-collect with the corrected collector and a fixed number of outlets per country.
+  tone. Re-collect with a fixed number of outlets per country, logging throttled queries so that
+  they are not mistaken for outlets with no coverage.
   Compare countries with article-level regressions that include outlet and week effects, so
   that differences in timing and outlet mix are not read as national differences.
 

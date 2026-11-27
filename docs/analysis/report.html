@@ -4855,7 +4855,7 @@ border: 0;
 </div>
 </div>
 </div>
-<p>11 of the 51 outlets returned no URLs at all, among them the Washington Post, the Wall Street Journal and the Times of Israel. Zero matching articles in three months of this war is implausible for outlets of that size. The original collector treated rate-limited or failed GDELT requests as empty results; the corrected collector logs them, but this window was not re-collected. Le Monde returned 130 URLs, all of them JavaScript walls with no article text.</p>
+<p>11 of the 51 outlets returned no URLs at all, among them the Washington Post, the Wall Street Journal and the Times of Israel. Zero matching articles in three months of this war is implausible for outlets of that size. The most likely cause is GDELT’s rate limit: during collection, throttled or failed requests were counted as empty results. Le Monde returned 130 URLs, all of them JavaScript walls with no article text.</p>
 </section>
 <section id="from-gdelt-hits-to-the-final-sample" class="level3">
 <h3 class="anchored" data-anchor-id="from-gdelt-hits-to-the-final-sample">From GDELT hits to the final sample</h3>
@@ -5501,8 +5501,8 @@ border: 0;
 <li><strong>Comparisons across languages are fragile.</strong> The model is not equally calibrated in every language. German coverage is the least negative and the most neutral, and it is so for the tabloid Bild as much as for Die Zeit and the Süddeutsche Zeitung. Part of the gap is genre: liveblogs and agency copy read as less negative in every country, and much of the German sample is one or the other. Among the 42 German articles that are neither, the gap to other countries shrinks from 0.14 to about 0.10, but their neutral probability stays far higher (0.38 against 0.22). That residue points to how the model reads German rather than to editorial style, though 42 articles cannot settle it. Comparisons within one language, such as the English-language sources, are the ones to trust.</li>
 <li><strong>Genre mix shifts averages.</strong> Because liveblogs and wire copy are less negative everywhere, an outlet’s or country’s average partly reflects how much of its sample is live or agency copy (ANSA in Italy is an example).</li>
 <li><strong>The labels are soft.</strong> Median confidence stays below 0.80 in every country. Class shares are tendencies, and the net score, which uses the full probabilities, is the better summary.</li>
-<li><strong>The sample is not a census.</strong> Eleven outlets returned nothing, most likely because the original collector swallowed rate-limit errors. The four-word query (<em>Iran</em>, <em>Israel</em>, <em>war</em>, <em>military</em>) favours explicitly military stories, and the UK and Israel make up over half of the articles. The results describe this sample, not each country’s press as a whole.</li>
-<li><strong>Next steps.</strong> Hand-code a sample of articles in each language to measure the model’s accuracy before comparing countries. Measure stance towards named actors instead of overall tone. Re-collect with the corrected collector and a fixed number of outlets per country. Compare countries with article-level regressions that include outlet and week effects, so that differences in timing and outlet mix are not read as national differences.</li>
+<li><strong>The sample is not a census.</strong> Eleven outlets returned nothing, most likely because GDELT throttled the requests and they were counted as empty. The four-word query (<em>Iran</em>, <em>Israel</em>, <em>war</em>, <em>military</em>) favours explicitly military stories, and the UK and Israel make up over half of the articles. The results describe this sample, not each country’s press as a whole.</li>
+<li><strong>Next steps.</strong> Hand-code a sample of articles in each language to measure the model’s accuracy before comparing countries. Measure stance towards named actors instead of overall tone. Re-collect with a fixed number of outlets per country, logging throttled queries so that they are not mistaken for outlets with no coverage. Compare countries with article-level regressions that include outlet and week effects, so that differences in timing and outlet mix are not read as national differences.</li>
 </ul>
 </section>
 </section>
@@ -6199,37 +6199,38 @@ border: 0;
 <span id="cb18-144"><a href="#cb18-144" aria-hidden="true" tabindex="-1"></a>  copy (ANSA in Italy is an example).</span>
 <span id="cb18-145"><a href="#cb18-145" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The labels are soft.** Median confidence stays below 0.80 in every country. Class shares</span>
 <span id="cb18-146"><a href="#cb18-146" aria-hidden="true" tabindex="-1"></a>  are tendencies, and the net score, which uses the full probabilities, is the better summary.</span>
-<span id="cb18-147"><a href="#cb18-147" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The sample is not a census.** Eleven outlets returned nothing, most likely because the</span>
-<span id="cb18-148"><a href="#cb18-148" aria-hidden="true" tabindex="-1"></a>  original collector swallowed rate-limit errors. The four-word query (*Iran*, *Israel*, *war*,</span>
+<span id="cb18-147"><a href="#cb18-147" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The sample is not a census.** Eleven outlets returned nothing, most likely because GDELT</span>
+<span id="cb18-148"><a href="#cb18-148" aria-hidden="true" tabindex="-1"></a>  throttled the requests and they were counted as empty. The four-word query (*Iran*, *Israel*, *war*,</span>
 <span id="cb18-149"><a href="#cb18-149" aria-hidden="true" tabindex="-1"></a>  *military*) favours explicitly military stories, and the UK and Israel make up over half of</span>
 <span id="cb18-150"><a href="#cb18-150" aria-hidden="true" tabindex="-1"></a>  the articles. The results describe this sample, not each country&#39;s press as a whole.</span>
 <span id="cb18-151"><a href="#cb18-151" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Next steps.** Hand-code a sample of articles in each language to measure the model&#39;s</span>
 <span id="cb18-152"><a href="#cb18-152" aria-hidden="true" tabindex="-1"></a>  accuracy before comparing countries. Measure stance towards named actors instead of overall</span>
-<span id="cb18-153"><a href="#cb18-153" aria-hidden="true" tabindex="-1"></a>  tone. Re-collect with the corrected collector and a fixed number of outlets per country.</span>
-<span id="cb18-154"><a href="#cb18-154" aria-hidden="true" tabindex="-1"></a>  Compare countries with article-level regressions that include outlet and week effects, so</span>
-<span id="cb18-155"><a href="#cb18-155" aria-hidden="true" tabindex="-1"></a>  that differences in timing and outlet mix are not read as national differences.</span>
-<span id="cb18-156"><a href="#cb18-156" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-157"><a href="#cb18-157" aria-hidden="true" tabindex="-1"></a><span class="fu">## Reproducibility</span></span>
-<span id="cb18-158"><a href="#cb18-158" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-159"><a href="#cb18-159" aria-hidden="true" tabindex="-1"></a>Code: <span class="co">[</span><span class="ot">github.com/andbbus/war-sentiment</span><span class="co">](https://github.com/andbbus/war-sentiment)</span>.</span>
-<span id="cb18-160"><a href="#cb18-160" aria-hidden="true" tabindex="-1"></a>Article text is not redistributed. The repository ships GDELT metadata and per-article</span>
-<span id="cb18-161"><a href="#cb18-161" aria-hidden="true" tabindex="-1"></a>scores, so every section except *Word Use* renders from the repository alone.</span>
-<span id="cb18-162"><a href="#cb18-162" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-163"><a href="#cb18-163" aria-hidden="true" tabindex="-1"></a>The sentiment scores were computed on CPU. An earlier run on Apple silicon gives the same</span>
-<span id="cb18-164"><a href="#cb18-164" aria-hidden="true" tabindex="-1"></a>scores to within 0.00001 for the 2,308 articles whose cleaned text is identical in both runs</span>
-<span id="cb18-165"><a href="#cb18-165" aria-hidden="true" tabindex="-1"></a>(identical labels in every case).</span>
-<span id="cb18-166"><a href="#cb18-166" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-167"><a href="#cb18-167" aria-hidden="true" tabindex="-1"></a><span class="in">```bash</span></span>
-<span id="cb18-168"><a href="#cb18-168" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> venv .venv <span class="kw">&amp;&amp;</span> <span class="bu">source</span> .venv/bin/activate</span>
-<span id="cb18-169"><a href="#cb18-169" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span>
-<span id="cb18-170"><a href="#cb18-170" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-171"><a href="#cb18-171" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.collect.gdelt_query     <span class="co"># 1. GDELT metadata (sequential, ~1 request / 5.5 s)</span></span>
-<span id="cb18-172"><a href="#cb18-172" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.collect.scraper         <span class="co"># 2. full text (not redistributed)</span></span>
-<span id="cb18-173"><a href="#cb18-173" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.preprocess.pipeline     <span class="co"># 3. cleaning, deduplication, language check</span></span>
-<span id="cb18-174"><a href="#cb18-174" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.sentiment.inference     <span class="co"># 4. sentiment scores</span></span>
-<span id="cb18-175"><a href="#cb18-175" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.sentiment.export        <span class="co"># 5. text-free summaries and scores</span></span>
-<span id="cb18-176"><a href="#cb18-176" aria-hidden="true" tabindex="-1"></a><span class="ex">quarto</span> render                         <span class="co"># 6. this report, written to docs/</span></span>
-<span id="cb18-177"><a href="#cb18-177" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal><i class="bi"></i></button></div>
+<span id="cb18-153"><a href="#cb18-153" aria-hidden="true" tabindex="-1"></a>  tone. Re-collect with a fixed number of outlets per country, logging throttled queries so that</span>
+<span id="cb18-154"><a href="#cb18-154" aria-hidden="true" tabindex="-1"></a>  they are not mistaken for outlets with no coverage.</span>
+<span id="cb18-155"><a href="#cb18-155" aria-hidden="true" tabindex="-1"></a>  Compare countries with article-level regressions that include outlet and week effects, so</span>
+<span id="cb18-156"><a href="#cb18-156" aria-hidden="true" tabindex="-1"></a>  that differences in timing and outlet mix are not read as national differences.</span>
+<span id="cb18-157"><a href="#cb18-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-158"><a href="#cb18-158" aria-hidden="true" tabindex="-1"></a><span class="fu">## Reproducibility</span></span>
+<span id="cb18-159"><a href="#cb18-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-160"><a href="#cb18-160" aria-hidden="true" tabindex="-1"></a>Code: <span class="co">[</span><span class="ot">github.com/andbbus/war-sentiment</span><span class="co">](https://github.com/andbbus/war-sentiment)</span>.</span>
+<span id="cb18-161"><a href="#cb18-161" aria-hidden="true" tabindex="-1"></a>Article text is not redistributed. The repository ships GDELT metadata and per-article</span>
+<span id="cb18-162"><a href="#cb18-162" aria-hidden="true" tabindex="-1"></a>scores, so every section except *Word Use* renders from the repository alone.</span>
+<span id="cb18-163"><a href="#cb18-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-164"><a href="#cb18-164" aria-hidden="true" tabindex="-1"></a>The sentiment scores were computed on CPU. An earlier run on Apple silicon gives the same</span>
+<span id="cb18-165"><a href="#cb18-165" aria-hidden="true" tabindex="-1"></a>scores to within 0.00001 for the 2,308 articles whose cleaned text is identical in both runs</span>
+<span id="cb18-166"><a href="#cb18-166" aria-hidden="true" tabindex="-1"></a>(identical labels in every case).</span>
+<span id="cb18-167"><a href="#cb18-167" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-168"><a href="#cb18-168" aria-hidden="true" tabindex="-1"></a><span class="in">```bash</span></span>
+<span id="cb18-169"><a href="#cb18-169" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> venv .venv <span class="kw">&amp;&amp;</span> <span class="bu">source</span> .venv/bin/activate</span>
+<span id="cb18-170"><a href="#cb18-170" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span>
+<span id="cb18-171"><a href="#cb18-171" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-172"><a href="#cb18-172" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.collect.gdelt_query     <span class="co"># 1. GDELT metadata (sequential, ~1 request / 5.5 s)</span></span>
+<span id="cb18-173"><a href="#cb18-173" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.collect.scraper         <span class="co"># 2. full text (not redistributed)</span></span>
+<span id="cb18-174"><a href="#cb18-174" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.preprocess.pipeline     <span class="co"># 3. cleaning, deduplication, language check</span></span>
+<span id="cb18-175"><a href="#cb18-175" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.sentiment.inference     <span class="co"># 4. sentiment scores</span></span>
+<span id="cb18-176"><a href="#cb18-176" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> src.sentiment.export        <span class="co"># 5. text-free summaries and scores</span></span>
+<span id="cb18-177"><a href="#cb18-177" aria-hidden="true" tabindex="-1"></a><span class="ex">quarto</span> render                         <span class="co"># 6. this report, written to docs/</span></span>
+<span id="cb18-178"><a href="#cb18-178" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 

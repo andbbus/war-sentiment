@@ -25,9 +25,8 @@ coverage |>
 
 `r n_outlets_zero` of the 51 outlets returned no URLs at all, among them the Washington Post,
 the Wall Street Journal and the Times of Israel. Zero matching articles in three months of
-this war is implausible for outlets of that size. The original collector treated rate-limited or failed GDELT
-requests as empty results; the corrected collector logs them, but this window was not
-re-collected. Le Monde returned 130 URLs, all of them JavaScript walls with no article text.
+this war is implausible for outlets of that size. The most likely cause is GDELT's rate limit:
+during collection, throttled or failed requests were counted as empty results. Le Monde returned 130 URLs, all of them JavaScript walls with no article text.
 
 ### From GDELT hits to the final sample
 
